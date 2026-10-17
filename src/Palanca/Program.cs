@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Palanca;
 using Palanca.Commands;
+using Palanca.Data;
+using Palanca.Flags;
 using Palanca.Security;
 
 if (args is ["healthcheck", ..])
@@ -12,7 +14,11 @@ if (args is ["healthcheck", ..])
 var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
-builder.Services.AddHealthChecks();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddPalancaData();
+builder.Services.AddScoped<FlagValueWriter>();
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database", tags: [HealthTags.Ready]);
 
 var app = builder.Build();
 

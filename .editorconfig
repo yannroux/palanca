@@ -10,3 +10,8 @@ indent_size = 4
 
 [*.{json,yml,yaml,xml,csproj,props,slnx}]
 indent_size = 2
+
+[src/Palanca/Data/Migrations/*.cs]
+# EF Core emits short-lived array literals for schema metadata. They run once,
+# during migration, not in a hot path.
+dotnet_diagnostic.CA1861.severity = none

@@ -1,8 +1,6 @@
-using Microsoft.AspNetCore.Mvc.Testing;
-
 namespace Palanca.Tests;
 
-public sealed class SecurityHeadersTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+public sealed class SecurityHeadersTests(PalancaFactory factory) : IClassFixture<PalancaFactory>
 {
     [Theory]
     [InlineData("/health/live")]

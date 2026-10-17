@@ -3,6 +3,9 @@
 TestResults/
 artifacts/
 
+# Local development database (src/Palanca/.data/).
+.data/
+
 .env
 .env.*
 *.user
