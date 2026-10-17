@@ -28,7 +28,7 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
-      - run: dotnet restore Palanca.slnx -p:NuGetAudit=true -p:NuGetAuditMode=all
+      - run: dotnet restore Palanca.slnx -p:Configuration=Release -p:NuGetAudit=true -p:NuGetAuditMode=all
       - run: dotnet build Palanca.slnx --no-restore --configuration Release
       - run: dotnet test --solution Palanca.slnx --no-build --configuration Release
       - name: Scan repository for vulnerabilities, secrets, and misconfigurations

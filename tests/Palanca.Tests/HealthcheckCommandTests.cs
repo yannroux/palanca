@@ -1,9 +1,8 @@
-using Microsoft.AspNetCore.Mvc.Testing;
 using Palanca.Commands;
 
 namespace Palanca.Tests;
 
-public sealed class HealthcheckCommandTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+public sealed class HealthcheckCommandTests(PalancaFactory factory) : IClassFixture<PalancaFactory>
 {
     [Theory]
     [InlineData(null, "http://127.0.0.1:8080/health/live")]
