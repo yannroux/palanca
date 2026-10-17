@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Palanca/Palanca.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Palanca.Tests/Palanca.Tests.csproj" />
+  </Folder>
+</Solution>

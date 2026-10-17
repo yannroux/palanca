@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <!-- The chiseled runtime image ships no ICU data; timestamps are stored and shown in UTC. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Palanca.Tests" />
+  </ItemGroup>
+
+</Project>

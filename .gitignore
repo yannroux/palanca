@@ -1,0 +1,21 @@
+**/bin/
+**/obj/
+TestResults/
+artifacts/
+
+.env
+.env.*
+*.user
+*.suo
+*.trx
+*.log
+.idea/
+.vs/
+.vscode/
+.DS_Store
+
+# Impeccable design tooling: per-machine hook and live-mode state.
+.impeccable/hook.cache.json
+.impeccable/hook.pending.json
+.impeccable/config.local.json
+.impeccable/live/
