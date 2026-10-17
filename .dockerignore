@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+.git/
+.github/
+.impeccable/
+.idea/
+.vs/
+.vscode/
+tests/
+artifacts/
+TestResults/
+.env
+.env.*
+Dockerfile*

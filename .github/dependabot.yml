@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 1
+    groups:
+      actions:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 1
+    groups:
+      nuget:
+        patterns: ["*"]
+        update-types: [minor, patch]
+  # .NET runtime patches arrive as pull requests rather than only when the image scan fails.
+  # Keep the runtime image on the same .NET patch as HogarHero.
+  - package-ecosystem: docker
+    directory: /src/Palanca
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 1
+    groups:
+      dotnet-images:
+        patterns: ["*"]
