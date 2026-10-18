@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="Microsoft.Playwright" />
     <PackageReference Include="System.Formats.Cbor" />
@@ -19,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Palanca.Client\Palanca.Client.csproj" />
     <ProjectReference Include="..\..\src\Palanca\Palanca.csproj" />
   </ItemGroup>
 
