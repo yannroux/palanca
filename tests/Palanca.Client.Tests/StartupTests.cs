@@ -192,6 +192,7 @@ public sealed class StartupTests
 
     [Theory]
     [InlineData("Palanca:PollInterval", "abc")]
+    [InlineData("Palanca:PollInterval", "pa' at 'ss")]
     [InlineData("Palanca:Endpoint", "http://user:secret@palanca:port")]
     public async Task SettingsThatCannotBeReadLeaveTheClientUnconfiguredWithoutFailingStartup(string key, string value)
     {

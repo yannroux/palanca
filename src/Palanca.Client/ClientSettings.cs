@@ -44,8 +44,9 @@ internal sealed record ClientConfiguration(ClientSettings? Settings, IReadOnlyLi
         catch (Exception exception)
         {
             // Binding throws for a value it cannot convert, such as PollInterval: abc. Its message quotes the value,
-            // which may hold credentials in an address, so only the setting's path is passed on.
-            var path = Regex.Match(exception.Message, @" at '(?<path>[^']+)'", RegexOptions.None, TimeSpan.FromSeconds(1));
+            // which may hold credentials in an address, so only the setting's path is passed on. The path comes after
+            // the value, so the match runs from the right, past anything the value contains.
+            var path = Regex.Match(exception.Message, @" at '(?<path>[^']+)'", RegexOptions.RightToLeft, TimeSpan.FromSeconds(1));
             return new ClientConfiguration(null, [path.Success
                 ? $"{path.Groups["path"].Value} has a value that cannot be read"
                 : $"its settings cannot be read ({exception.GetType().Name})"], []);
