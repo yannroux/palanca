@@ -3,7 +3,7 @@
 @using Palanca.SdkKeys
 @inject BoardQueries Queries
 @inject SdkKeyCommands Keys
-@inject NewKeyHandoff Handoff
+@inject NewSecretHandoff Handoff
 @inject NavigationManager Navigation
 @inject TimeProvider Time
 
@@ -177,7 +177,7 @@
             : (null, NoticeKind.Info);
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
-            created = Handoff.Take(Shown, AppKey);
+            created = Handoff.Take<NewKey>(Shown) is { } key && key.ApplicationKey == AppKey ? key : null;
         }
     }
 

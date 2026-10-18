@@ -1495,6 +1495,11 @@ label.check input {
     color: var(--muted);
 }
 
+/* Management tokens: the applications a scoped token reaches sit under the option that chooses them. */
+.check-group {
+    padding-left: 28px;
+}
+
 /* History: change records, newest first. Agents' changes stand out. */
 
 .history-filters {

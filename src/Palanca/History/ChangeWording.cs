@@ -30,6 +30,8 @@ internal static class ChangeWording
         ChangeAction.PasskeyRegistered => $"Registered the passkey {record.NewValue}",
         ChangeAction.PasskeyRenamed => $"Renamed the passkey {record.OldValue} to {record.NewValue}",
         ChangeAction.PasskeyRemoved => $"Removed the passkey {record.OldValue}",
+        ChangeAction.ManagementTokenCreated => $"Created the management token {record.NewValue}",
+        ChangeAction.ManagementTokenRevoked => $"Revoked the management token {record.OldValue}",
         _ => record.Action.ToString(),
     };
 

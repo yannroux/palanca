@@ -17,6 +17,21 @@ namespace Palanca.Data.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.13");
 
+            modelBuilder.Entity("ManagementTokenApplications", b =>
+                {
+                    b.Property<int>("ApplicationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TokenId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ApplicationId", "TokenId");
+
+                    b.HasIndex("TokenId");
+
+                    b.ToTable("ManagementTokenApplications");
+                });
+
             modelBuilder.Entity("Palanca.Data.AppEnvironment", b =>
                 {
                     b.Property<int>("Id")
@@ -148,6 +163,9 @@ namespace Palanca.Data.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("TokenId")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ApplicationId");
@@ -215,6 +233,53 @@ namespace Palanca.Data.Migrations
                     b.HasIndex("EnvironmentId");
 
                     b.ToTable("FlagValues");
+                });
+
+            modelBuilder.Entity("Palanca.Data.ManagementToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("AllApplications")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("Hash")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Permission")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Prefix")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Prefix");
+
+                    b.ToTable("ManagementTokens");
                 });
 
             modelBuilder.Entity("Palanca.Data.Owner", b =>
@@ -344,6 +409,21 @@ namespace Palanca.Data.Migrations
                     b.HasIndex("Prefix");
 
                     b.ToTable("SdkKeys");
+                });
+
+            modelBuilder.Entity("ManagementTokenApplications", b =>
+                {
+                    b.HasOne("Palanca.Data.Application", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Palanca.Data.ManagementToken", null)
+                        .WithMany()
+                        .HasForeignKey("TokenId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Palanca.Data.AppEnvironment", b =>

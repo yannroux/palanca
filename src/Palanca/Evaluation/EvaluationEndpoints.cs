@@ -3,7 +3,6 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Net.Http.Headers;
 using Palanca.Data;
-using Palanca.SdkKeys;
 using Palanca.Security;
 
 namespace Palanca.Evaluation;
@@ -88,7 +87,7 @@ internal static class EvaluationEndpoints
 
     private static async Task<SdkKey?> FindKeyAsync(PalancaDbContext db, string? bearer, CancellationToken cancellationToken)
     {
-        if (SdkKeySecrets.Parse(bearer) is not { } presented)
+        if (BearerSecrets.SdkKeys.Parse(bearer) is not { } presented)
         {
             return null;
         }

@@ -19,6 +19,11 @@ internal sealed record KeyRow(int Id, string Name, string Prefix, DateTime Creat
 
 internal sealed record EnvironmentKeys(EnvironmentColumn Environment, IReadOnlyList<KeyRow> Keys);
 
+/// <param name="Applications">The names of the applications in the token's scope; empty when it covers all of them.</param>
+internal sealed record TokenRow(
+    int Id, string Name, string Prefix, TokenPermission Permission, bool AllApplications, IReadOnlyList<string> Applications,
+    DateTime CreatedAt, DateTime ExpiresAt, DateTime? LastUsedAt, DateTime? RevokedAt);
+
 internal sealed record Board(
     ApplicationSummary Application,
     IReadOnlyList<FlagRow> Flags,
@@ -98,6 +103,15 @@ internal sealed class BoardQueries(PalancaDbContext db)
             .Select(e => new EnvironmentKeys(e, [.. keys.Where(k => k.EnvironmentId == e.Id).Select(k => k.Row)]))
             .ToList();
     }
+
+    /// <summary>Every management token, newest first, expired and revoked ones included.</summary>
+    public Task<List<TokenRow>> TokensAsync(CancellationToken cancellationToken) =>
+        db.ManagementTokens.AsNoTracking()
+            .OrderByDescending(t => t.CreatedAt).ThenByDescending(t => t.Id)
+            .Select(t => new TokenRow(
+                t.Id, t.Name, t.Prefix, t.Permission, t.AllApplications, t.Applications.OrderBy(a => a.Name).Select(a => a.Name).ToList(),
+                t.CreatedAt, t.ExpiresAt, t.LastUsedAt, t.RevokedAt))
+            .ToListAsync(cancellationToken);
 
     public async Task<FlagRow?> FlagAsync(string applicationKey, string flagKey, CancellationToken cancellationToken)
     {

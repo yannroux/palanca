@@ -71,6 +71,21 @@ public sealed class LogHygieneTests
             (await api.GetAsync("/api/v1/flags", TestContext.Current.CancellationToken)).Dispose();
         }
 
+        var tokensPage = await client.GetPageAsync("/tokens");
+        using (var created = await client.PostFormAsync("/tokens", tokensPage, "create-token", new()
+        {
+            ["Input.Name"] = "agent",
+            ["Input.Permission"] = "ReadWrite",
+            ["Input.Scope"] = "all",
+            ["Input.LifetimeDays"] = "365",
+        }))
+        {
+            var shownPage = await client.GetPageAsync(DashboardClient.RedirectPath(created)!);
+            var managementToken = Regex.Match(shownPage.Html, "palanca_mgt_[A-Za-z0-9_-]{43}").Value;
+            Assert.NotEmpty(managementToken);
+            secrets.Add(managementToken);
+        }
+
         secrets.Add(client.Cookie("__Host-Palanca.Session")!.Value);
         secrets.Add(client.Cookie("__Host-Palanca.Antiforgery")!.Value);
 

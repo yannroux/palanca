@@ -1,7 +1,7 @@
 namespace Palanca.Data;
 
-/// <summary>Who made a change, and through which surface.</summary>
-internal sealed record ChangeActor(ChangeSource Source, string Name);
+/// <summary>Who made a change, and through which surface. A change through the API also names its token's id.</summary>
+internal sealed record ChangeActor(ChangeSource Source, string Name, int? TokenId = null);
 
 internal static class ChangeLog
 {
@@ -17,6 +17,7 @@ internal static class ChangeLog
             OccurredAt = occurredAt,
             Source = actor.Source,
             Actor = actor.Name,
+            TokenId = actor.TokenId,
             Action = action,
             ApplicationId = application?.Id,
             ApplicationKey = application?.Key,

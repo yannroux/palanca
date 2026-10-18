@@ -13,6 +13,7 @@ public sealed class DashboardGateTests(PalancaFactory factory) : IClassFixture<P
     [InlineData("/apps/hogarhero/settings")]
     [InlineData("/apps/hogarhero/keys")]
     [InlineData("/history")]
+    [InlineData("/tokens")]
     [InlineData("/apps/hogarhero/flags/new")]
     [InlineData("/apps/hogarhero/flags/new-search")]
     [InlineData("/apps/hogarhero/confirm?flag=new-search&env=production&value=on")]

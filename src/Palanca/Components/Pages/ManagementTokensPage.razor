@@ -1,0 +1,266 @@
+@page "/tokens"
+@using Palanca.Applications
+@using Palanca.Data
+@using Palanca.ManagementTokens
+@inject BoardQueries Queries
+@inject ManagementTokenCommands Tokens
+@inject NewSecretHandoff Handoff
+@inject NavigationManager Navigation
+@inject TimeProvider Time
+
+<PageTitle>Management tokens · Palanca</PageTitle>
+
+<div class="page-head">
+    <h1>Management tokens</h1>
+</div>
+
+<p class="page-intro">
+    Scripts and AI agents call the management API with a token. A read-only token reads flags, values and history. A read-write token can also create
+    flags and set values in every environment, production included, without the confirmation the board asks for. A token's scope never changes: to change
+    it, create a new token and revoke the old one.
+</p>
+
+@if (created is not null)
+{
+    <section class="secret-once" aria-labelledby="secret-title">
+        <h2 id="secret-title">Copy the new token now</h2>
+        <p>@created.Name. It is shown only this once: Palanca keeps only its hash.</p>
+        <code class="secret">@created.Token</code>
+        <p class="field-hint">Keep it in a file only the agent's user can read, never in code or a repository.</p>
+    </section>
+}
+
+@if (message is not null)
+{
+    <Notice Kind="kind">@message</Notice>
+}
+
+@if (tokens.Count == 0)
+{
+    <p class="empty-inline">No tokens yet.</p>
+}
+else
+{
+    <table class="ledger">
+        <thead>
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Starts with</th>
+                <th scope="col">Permission</th>
+                <th scope="col">Applications</th>
+                <th scope="col">Created</th>
+                <th scope="col">Expires</th>
+                <th scope="col">Last used</th>
+                <th scope="col"><span class="visually-hidden">Status and actions</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var token in tokens)
+            {
+                var popover = $"revoke_{token.Id}";
+                var active = token.RevokedAt is null && now < token.ExpiresAt;
+                <tr class="@(active ? null : "row-revoked")">
+                    <td class="cell-name">@token.Name</td>
+                    <td data-label="Starts with"><code>@token.Prefix…</code></td>
+                    <td data-label="Permission">@(token.Permission == TokenPermission.ReadWrite ? "Read-write" : "Read-only")</td>
+                    <td data-label="Applications">@(token.AllApplications ? "All" : string.Join(", ", token.Applications))</td>
+                    <td class="cell-time" data-label="Created">@Display.Date(token.CreatedAt)</td>
+                    <td class="cell-time" data-label="Expires">@Display.Date(token.ExpiresAt)</td>
+                    <td class="cell-time" data-label="Last used">@(token.LastUsedAt is { } used ? Display.Ago(used, now) : "Never")</td>
+                    <td class="cell-actions">
+                        @if (token.RevokedAt is { } revokedAt)
+                        {
+                            <span class="cell-status">Revoked @Display.Ago(revokedAt, now)</span>
+                        }
+                        else if (!active)
+                        {
+                            <span class="cell-status">Expired @Display.Ago(token.ExpiresAt, now)</span>
+                        }
+                        else
+                        {
+                            <form method="post" @formname="@($"revoke-{token.Id}")" @onsubmit="RevokeAsync" class="row-actions">
+                                <span class="cell-status">Active</span>
+                                <AntiforgeryToken />
+                                <input type="hidden" name="TokenId" value="@token.Id" />
+                                <button type="button" class="button button-danger" popovertarget="@popover">Revoke</button>
+                                <div popover id="@popover" class="confirm" role="dialog" aria-labelledby="@($"{popover}-title")">
+                                    <p id="@($"{popover}-title")" class="confirm-title">Revoke @token.Name?</p>
+                                    <p>Requests with it get 401 from the next one on. The changes it made stay in the history.</p>
+                                    <div class="confirm-actions">
+                                        <button type="submit" class="button button-danger-solid">Revoke token</button>
+                                        <button type="button" popovertarget="@popover" popovertargetaction="hide" class="button button-quiet">Keep it</button>
+                                    </div>
+                                </div>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<section class="form-section" aria-labelledby="new-token-title">
+    <h2 id="new-token-title">New token</h2>
+    <form method="post" @formname="create-token" @onsubmit="CreateAsync" class="form-stack">
+        <AntiforgeryToken />
+        <div class="field">
+            <label for="token-name">Name</label>
+            <input id="token-name" name="Input.Name" value="@Input?.Name" required maxlength="100" autocomplete="off" placeholder="claude-hogarhero"
+                   aria-describedby="token-name-hint" />
+            <p class="field-hint" id="token-name-hint">The history records the token's changes under this name.</p>
+        </div>
+        <fieldset class="field">
+            <legend>Permission</legend>
+            <label class="check">
+                <input type="radio" name="Input.Permission" value="@TokenPermission.ReadOnly" checked="@(Permission != TokenPermission.ReadWrite)" />
+                Read-only: flags, values and history
+            </label>
+            <label class="check">
+                <input type="radio" name="Input.Permission" value="@TokenPermission.ReadWrite" checked="@(Permission == TokenPermission.ReadWrite)" />
+                Read-write: also create flags, edit descriptions and set values, production included
+            </label>
+        </fieldset>
+        <fieldset class="field">
+            <legend>Applications</legend>
+            <label class="check">
+                <input type="radio" name="Input.Scope" value="@AllScope" checked="@(Input?.Scope == AllScope)" />
+                All applications, including ones registered later
+            </label>
+            <label class="check">
+                <input type="radio" name="Input.Scope" value="@ChosenScope" checked="@(Input?.Scope != AllScope)" />
+                Only these
+            </label>
+            @if (applications.Count == 0)
+            {
+                <p class="field-hint check-group">No applications yet.</p>
+            }
+            else
+            {
+                <div class="check-group">
+                    @foreach (var application in applications)
+                    {
+                        <label class="check">
+                            <input type="checkbox" name="Input.Applications" value="@application.Key" checked="@(Input?.Applications?.Contains(application.Key) == true)" />
+                            @application.Name
+                        </label>
+                    }
+                </div>
+            }
+        </fieldset>
+        <div class="field">
+            <label for="token-expiry">Expires after</label>
+            <select id="token-expiry" name="Input.LifetimeDays">
+                @foreach (var days in ManagementTokenCommands.LifetimeDays)
+                {
+                    <option value="@days" selected="@(days == (Input?.LifetimeDays ?? ManagementToken.MaxLifetimeDays))">@Lifetime(days)</option>
+                }
+            </select>
+            <p class="field-hint">At most 12 months. Create the next token before this one expires.</p>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="button">Create token</button>
+        </div>
+    </form>
+</section>
+
+@code {
+    private const string AllScope = "all";
+    private const string ChosenScope = "chosen";
+
+    private List<TokenRow> tokens = [];
+    private List<ApplicationSummary> applications = [];
+    private NewToken? created;
+    private DateTime now;
+    private string? message;
+    private NoticeKind kind;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromQuery(Name = "status")]
+    private string? Status { get; set; }
+
+    /// <summary>The one-time handle of a token just created; never the token itself.</summary>
+    [SupplyParameterFromQuery(Name = "shown")]
+    private string? Shown { get; set; }
+
+    [SupplyParameterFromForm(FormName = "create-token")]
+    private TokenForm? Input { get; set; }
+
+    // Each token's revoke form has its own name; this is bound from whichever was posted.
+    [SupplyParameterFromForm]
+    private int? TokenId { get; set; }
+
+    private TokenPermission? Permission => Enum.TryParse<TokenPermission>(Input?.Permission, out var permission) ? permission : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // A response may carry a new token, so no copy of this page is kept by the browser or a proxy.
+        HttpContext.Response.Headers.CacheControl = "no-store";
+        now = Time.GetUtcNow().UtcDateTime;
+        await LoadAsync();
+        (message, kind) = Status == "revoked"
+            ? ("Token revoked. Requests with it fail from now on.", NoticeKind.Success)
+            : (null, NoticeKind.Info);
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            created = Handoff.Take<NewToken>(Shown);
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        tokens = await Queries.TokensAsync(HttpContext.RequestAborted);
+        applications = await Queries.ApplicationsAsync(HttpContext.RequestAborted);
+    }
+
+    private async Task CreateAsync()
+    {
+        var (result, token) = await Tokens.CreateAsync(
+            Input?.Name, Permission, Input?.Scope == AllScope, Input?.Applications ?? [], Input?.LifetimeDays ?? 0,
+            DashboardActor.Of(HttpContext), HttpContext.RequestAborted);
+        if (!result.Succeeded)
+        {
+            Fail(result);
+            return;
+        }
+
+        // Redirect, so a reload cannot create a second token. The URL carries a one-time handle, never the token.
+        Navigation.NavigateTo($"/tokens?shown={Handoff.Hold(token!)}");
+    }
+
+    private async Task RevokeAsync()
+    {
+        var result = await Tokens.RevokeAsync(TokenId ?? 0, DashboardActor.Of(HttpContext), HttpContext.RequestAborted);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo("/tokens?status=revoked");
+            return;
+        }
+
+        Fail(result);
+    }
+
+    private void Fail(CommandResult result)
+    {
+        HttpContext.Response.StatusCode = result.Status == CommandStatus.Conflict ? StatusCodes.Status409Conflict : StatusCodes.Status400BadRequest;
+        (message, kind) = (result.Message, NoticeKind.Error);
+    }
+
+    private static string Lifetime(int days) => days switch
+    {
+        180 => "6 months",
+        ManagementToken.MaxLifetimeDays => "12 months",
+        _ => $"{days} days",
+    };
+
+    private sealed class TokenForm
+    {
+        public string? Name { get; set; }
+        public string? Permission { get; set; }
+        public string? Scope { get; set; }
+        public string[]? Applications { get; set; }
+        public int? LifetimeDays { get; set; }
+    }
+}

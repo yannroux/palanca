@@ -97,6 +97,11 @@ public sealed partial class DashboardClient : IDisposable
         return Http.PostAsync(path, new FormUrlEncodedContent(fields), TestContext.Current.CancellationToken);
     }
 
+    /// <summary>Posts fields that may repeat a name, as a group of checkboxes does.</summary>
+    public Task<HttpResponseMessage> PostFormAsync(string path, Page page, string formName, IEnumerable<KeyValuePair<string, string>> fields) =>
+        Http.PostAsync(path, new FormUrlEncodedContent([.. fields, new("_handler", formName), new("__RequestVerificationToken", page.FormToken)]),
+            TestContext.Current.CancellationToken);
+
     public void Dispose() => Http.Dispose();
 
     public sealed partial class Page(string html)
