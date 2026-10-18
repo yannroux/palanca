@@ -114,11 +114,11 @@ Authorization: Bearer palanca_mgt_...
 | `GET /applications/{app}/history` | Change records, newest first, 50 at a time. Filter with `environment` and `flag`; pass the response's `next` as `before` for the next page |
 
 - **Errors:** RFC 9457 problem details (`application/problem+json`).
-  - `401`: the token is missing, unknown, revoked or expired, without saying which. Failed attempts count toward the per-address limit, and beyond it requests get `429`.
-  - `403`: the application is outside the token's scope. A token for chosen applications gets `403` for any other key, whether or not that application exists.
+  - `401`: the token is missing, unknown, revoked or expired, without saying which. Failed attempts count toward the per-address limit: after 10 failures within a minute, requests from that address get `429`, even with a valid token, until a minute has passed.
+  - `403`: the application is outside the token's scope. A token for chosen applications gets `403` for any other key, whether or not that application exists, and for one of its own once it is archived.
   - `404`: a token for every application asked for one that does not exist or is archived, a flag that does not exist or is archived, or any other path.
 - **Credentials:** only management tokens work here. SDK keys and the dashboard's session cookie get `401`; a management token opens no dashboard page and gets `401` from the evaluation API.
-- **Archived items:** archived applications, environments and flags are left out.
+- **Archived items:** archived applications, environments and flags are left out of the lists; the history still shows the changes made to them.
 - **Caching and last use:** responses carry `Cache-Control: no-store`. A token's last use is recorded at most once a minute and shown on the Tokens page.
 
 ## Database
