@@ -1,0 +1,46 @@
+@* Drawn icons in one stroke weight. Decorative unless a label is given. *@
+<svg class="icon" width="@Size" height="@Size" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="@(Label is null ? "true" : null)" role="@(Label is null ? null : "img")"
+     aria-label="@Label" focusable="false">
+    @switch (Name)
+    {
+        case "check":
+            <path d="M4 10.5l4 4 8-9" />
+            break;
+        case "alert":
+            <path d="M10 2.75l7.75 13.5H2.25z" />
+            <path d="M10 8v3.5" />
+            <path d="M10 14.25v.01" />
+            break;
+        case "info":
+            <circle cx="10" cy="10" r="7.25" />
+            <path d="M10 9v5" />
+            <path d="M10 6.25v.01" />
+            break;
+        case "key":
+            <circle cx="6.5" cy="10" r="3.25" />
+            <path d="M9.75 10h7.5" />
+            <path d="M14.5 10v3" />
+            <path d="M17.25 10v2" />
+            break;
+        case "sign-out":
+            <path d="M8 4H4.75v12H8" />
+            <path d="M12 6.5L15.5 10 12 13.5" />
+            <path d="M15.5 10H8" />
+            break;
+        case "chevron-down":
+            <path d="M5.5 8l4.5 4.5L14.5 8" />
+            break;
+    }
+</svg>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = "";
+
+    [Parameter]
+    public int Size { get; set; } = 16;
+
+    [Parameter]
+    public string? Label { get; set; }
+}

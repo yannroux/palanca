@@ -113,4 +113,60 @@ internal enum ChangeSource
 internal enum ChangeAction
 {
     FlagValueSet,
+    OwnerEnrollmentIssued,
+    OwnerRecovered,
+    PasskeyRegistered,
+    PasskeyRenamed,
+    PasskeyRemoved,
+}
+
+/// <summary>The one person who signs in to the dashboard. Created and recovered only from the host (FLG-046).</summary>
+internal sealed class Owner
+{
+    public Guid Id { get; set; }
+    public required string Email { get; set; }
+
+    /// <summary>Changes when a passkey is removed or the owner is recovered, which ends every other session (FLG-047).</summary>
+    public required string SecurityStamp { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public List<OwnerPasskey> Passkeys { get; } = [];
+}
+
+/// <summary>A passkey registered to the owner, as ASP.NET Core Identity's passkey store sees it.</summary>
+internal sealed class OwnerPasskey
+{
+    public required byte[] CredentialId { get; set; }
+    public Guid OwnerId { get; set; }
+    public Owner Owner { get; set; } = null!;
+    public required string Name { get; set; }
+    public required OwnerPasskeyData Data { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? LastUsedAt { get; set; }
+}
+
+/// <summary>The rest of Identity's passkey record, stored as JSON.</summary>
+internal sealed record OwnerPasskeyData(
+    byte[] PublicKey,
+    uint SignCount,
+    string[]? Transports,
+    bool IsUserVerified,
+    bool IsBackupEligible,
+    bool IsBackedUp,
+    byte[] AttestationObject,
+    byte[] ClientDataJson);
+
+/// <summary>A single-use enrollment link issued by the host command. Only the hash of its token is stored.</summary>
+internal sealed class OwnerEnrollment
+{
+    public int Id { get; set; }
+    public Guid OwnerId { get; set; }
+    public Owner Owner { get; set; } = null!;
+
+    /// <summary>SHA-256 of the token in the link.</summary>
+    public required byte[] Hash { get; set; }
+
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? UsedAt { get; set; }
 }

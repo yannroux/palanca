@@ -1,0 +1,97 @@
+@page "/sign-in"
+@layout GateLayout
+@attribute [AllowAnonymous]
+@inject OwnerAccounts Accounts
+@inject NavigationManager Navigation
+
+<PageTitle>Sign in · Palanca</PageTitle>
+
+<section class="gate-panel" aria-labelledby="sign-in-title">
+    <h1 id="sign-in-title">Sign in</h1>
+    <p>Use a passkey registered to the owner account.</p>
+    @if (message is not null)
+    {
+        <Notice Kind="kind">@message</Notice>
+    }
+    <form method="post" action="@FormAction" @formname="sign-in" @onsubmit="SignInAsync">
+        <AntiforgeryToken />
+        <PasskeySubmit Operation="request" OptionsUrl="/sign-in/options" Name="Credential" Class="button button-signal">
+            <Icon Name="key" Size="20" />Sign in with a passkey
+        </PasskeySubmit>
+    </form>
+    <noscript><p class="gate-note">Passkeys need JavaScript. Allow it for this site to sign in.</p></noscript>
+</section>
+<p class="gate-help">Lost every passkey? On the host, run <code>owner recover</code> for a new enrollment link.</p>
+
+@code {
+    private string? message;
+    private NoticeKind kind;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery(Name = "status")]
+    private string? Status { get; set; }
+
+    [SupplyParameterFromForm(FormName = "sign-in")]
+    private PasskeyInput? Credential { get; set; }
+
+    // Blazor's default form action drops the query string, and with it the return URL.
+    private string FormAction => "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
+
+    protected override void OnInitialized()
+    {
+        if (!HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            return;
+        }
+
+        if (HttpContext.User.Identity?.IsAuthenticated == true)
+        {
+            Navigation.NavigateTo(LocalUrl.OrHome(ReturnUrl));
+            return;
+        }
+
+        (message, kind) = Status switch
+        {
+            "enrolled" => ("Passkey registered. Sign in with it to continue.", NoticeKind.Success),
+            "signed-out" => ("You have signed out.", NoticeKind.Info),
+            _ => (null, NoticeKind.Info),
+        };
+    }
+
+    private async Task SignInAsync()
+    {
+        if (Credential?.CredentialJson is not { Length: > 0 } credentialJson)
+        {
+            Fail(Credential?.Error == "options-429" ? StatusCodes.Status429TooManyRequests : StatusCodes.Status400BadRequest,
+                PasskeyInput.ErrorMessage(Credential?.Error));
+            return;
+        }
+
+        switch (await Accounts.SignInAsync(credentialJson, HttpContext.Connection.RemoteIpAddress))
+        {
+            case SignInOutcome.SignedIn:
+                Navigation.NavigateTo(LocalUrl.OrHome(ReturnUrl));
+                break;
+            case SignInOutcome.Limited:
+                Fail(StatusCodes.Status429TooManyRequests, "Too many failed sign-ins from this address. Wait a minute, then try again.");
+                break;
+            case SignInOutcome.Expired:
+                Fail(StatusCodes.Status400BadRequest, "The sign-in took too long. Try again.");
+                break;
+            default:
+                Fail(StatusCodes.Status400BadRequest, "That passkey was not accepted. Try again, or use another passkey registered to Palanca.");
+                break;
+        }
+    }
+
+    private void Fail(int statusCode, string error)
+    {
+        HttpContext.Response.StatusCode = statusCode;
+        (message, kind) = (error, NoticeKind.Error);
+    }
+}

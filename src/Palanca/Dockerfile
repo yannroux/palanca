@@ -18,8 +18,11 @@ WORKDIR /app
 COPY --from=build /out/ ./
 # The only writable path: mount a volume here. Docker copies this ownership into a new named volume.
 COPY --from=build --chown=$APP_UID:$APP_UID /data /data
+# Temporary files go to the volume, because the root filesystem may be read-only. Data protection writes each
+# new key to a temporary file before moving it into /data/keys, and SQLite keeps its temporary files there too.
 ENV ASPNETCORE_HTTP_PORTS=8080 \
-    DOTNET_EnableDiagnostics=0
+    DOTNET_EnableDiagnostics=0 \
+    TMPDIR=/data/tmp
 EXPOSE 8080
 STOPSIGNAL SIGTERM
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \

@@ -1,0 +1,13 @@
+@* A status or error line. Errors are announced at once; other notices politely. *@
+<div class="notice notice-@Kind" role="@(Kind == NoticeKind.Error ? "alert" : "status")">
+    <Icon Name="@(Kind switch { NoticeKind.Success => "check", NoticeKind.Error => "alert", _ => "info" })" Size="20" />
+    <p>@ChildContent</p>
+</div>
+
+@code {
+    [Parameter]
+    public NoticeKind Kind { get; set; } = NoticeKind.Info;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}
