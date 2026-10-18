@@ -13,6 +13,7 @@ namespace Palanca.Client;
 /// </summary>
 public static class PalancaMetrics
 {
+    /// <summary>The meter's name, to pass to <c>AddMeter</c> when collecting the metrics.</summary>
     public const string MeterName = "Palanca.Client";
 }
 

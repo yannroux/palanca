@@ -45,6 +45,14 @@ jobs:
           cache: false
           skip-dirs: .git
           skip-files: '**/bin/**,**/obj/**'
+      # Packing on every run, with package validation, shows packaging problems before a release tag does.
+      - name: Pack the client
+        run: dotnet pack src/Palanca.Client/Palanca.Client.csproj --no-build --configuration Release --output artifacts/packages
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: client-package
+          path: artifacts/packages/
+          retention-days: 7
 
   image:
     needs: build-test

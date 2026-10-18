@@ -1,0 +1,88 @@
+name: Client release
+
+# Publishes Palanca.Client to nuget.org from a client-v<version> tag (FLG-072). nuget.org trusts this workflow file
+# and the nuget environment through Trusted Publishing, so no API key is stored: the publish job exchanges a
+# short-lived GitHub token for a one-hour nuget.org key.
+on:
+  push:
+    tags: ['client-v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-release
+  cancel-in-progress: false
+
+jobs:
+  pack:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+          # The whole history, to check that the tag is on main.
+          fetch-depth: 0
+      - name: Read the version from the tag
+        id: version
+        run: |
+          version="${GITHUB_REF_NAME#client-v}"
+          # SemVer 2.0 without build metadata: numeric parts, pre-release ones included, have no leading zeros.
+          part='(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
+          if ! [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-$part(\.$part)*)?$ ]]; then
+            echo "::error::$GITHUB_REF_NAME is not client-v followed by a SemVer version, such as client-v0.1.0."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Check that the tagged commit is on main
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_REF_NAME points at a commit that is not on main."
+            exit 1
+          fi
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - run: dotnet restore Palanca.slnx -p:Configuration=Release -p:NuGetAudit=true -p:NuGetAuditMode=all
+      - run: dotnet build Palanca.slnx --no-restore --configuration Release
+      - run: dotnet test --solution Palanca.slnx --no-build --configuration Release
+      - name: Pack
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        # Rebuilt here, so the assembly carries the release version too.
+        run: dotnet pack src/Palanca.Client/Palanca.Client.csproj --no-restore --configuration Release --output artifacts/packages -p:Version="$VERSION"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packages
+          path: artifacts/packages/
+          retention-days: 7
+
+  # Only this job can get a nuget.org key: the nuget environment accepts client-v* tags only.
+  publish:
+    needs: pack
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: nuget
+    # It checks nothing out, so its token needs only to request the OIDC token.
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: packages
+          path: packages
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+      # Requested just before the push: the key lasts one hour.
+      - name: Get a nuget.org key
+        id: login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ secrets.NUGET_USER }}
+      # The symbol package next to it is pushed along with it.
+      - name: Push to nuget.org
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push "packages/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json

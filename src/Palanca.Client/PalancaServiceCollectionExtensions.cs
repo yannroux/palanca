@@ -5,6 +5,7 @@ using Palanca.Client;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
+/// <summary>Registers the Palanca client.</summary>
 public static class PalancaServiceCollectionExtensions
 {
     /// <summary>
@@ -48,6 +49,7 @@ public static class PalancaServiceCollectionExtensions
     }
 }
 
+/// <summary>Registers the Palanca client's health check.</summary>
 public static class PalancaHealthChecksBuilderExtensions
 {
     private static readonly IHealthCheck NotAdded = new NotAddedCheck();
