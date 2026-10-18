@@ -99,24 +99,35 @@ Scripts and AI agents call the management API with a management token.
 
 ## Management API
 
-The management API lives under `/api/manage/v1` and takes and returns JSON. Every request needs a management token; reading needs only a read-only one. Writing (creating flags and setting values) comes in the next step of Phase 2.
+The management API lives under `/api/manage/v1` and takes and returns JSON. Every request needs a management token, except the OpenAPI document at `/api/manage/v1/openapi.json`, which is public so agents can discover the contract. Any token reads; writing needs a read-write one.
 
 ```http
-GET /api/manage/v1/applications/hogarhero/flags
+PUT /api/manage/v1/applications/hogarhero/flags/new-search/values/staging
 Authorization: Bearer palanca_mgt_...
+Content-Type: application/json
+
+{ "enabled": true }
 ```
 
-| Method and path | Returns |
+| Method and path | Does |
 | --- | --- |
-| `GET /applications` | The applications in the token's scope, with their environments, protection and revision |
-| `GET /applications/{app}/flags` | The application's flags, with their description and, per environment, the value, when it last changed and who changed it |
-| `GET /applications/{app}/flags/{flag}` | One flag |
-| `GET /applications/{app}/history` | Change records, newest first, 50 at a time. Filter with `environment` and `flag`; pass the response's `next` as `before` for the next page |
+| `GET /applications` | Lists the applications in the token's scope, with their environments, protection and revision |
+| `GET /applications/{app}/flags` | Lists the application's flags, with their description and, per environment, the value, when it last changed and who changed it |
+| `GET /applications/{app}/flags/{flag}` | Returns one flag |
+| `GET /applications/{app}/history` | Lists change records, newest first, 50 at a time. Filter with `environment` and `flag`; pass the response's `next` as `before` for the next page |
+| `POST /applications/{app}/flags` | Creates a flag from `key`, `description` and optional `values`, such as `{ "staging": true }`. Environments it does not turn on start off. Answers `201` with the flag |
+| `PATCH /applications/{app}/flags/{flag}` | Changes the flag's `description` |
+| `PUT /applications/{app}/flags/{flag}/values/{env}` | Sets `enabled` in one environment and answers with the environment's revision after the request. Setting the current value again changes nothing |
 
+- **Protected environments:** a read-write token creates flags that are on in, and sets values in, every environment, production included, without the confirmation the dashboard asks for. Every change is recorded in the history with the source API and the token's name.
+- **No escalation:** no endpoint archives or deletes flags, or manages applications, environments, SDK keys or tokens.
+- **Write limit:** each token may make 30 writes a minute (`Palanca:Management:WritesPerMinute`). Every write that passes the permission and scope checks counts, whether or not it changes anything. Beyond the limit, writes get `429` with `Retry-After`; reads are not limited.
 - **Errors:** RFC 9457 problem details (`application/problem+json`).
+  - `400`: an invalid key or description, an unknown environment in `values`, malformed JSON or a missing required property. `415`: a write whose `Content-Type` is not JSON, or missing.
   - `401`: the token is missing, unknown, revoked or expired, without saying which. Failed attempts count toward the per-address limit: after 10 failures within a minute, requests from that address get `429`, even with a valid token, until a minute has passed.
-  - `403`: the application is outside the token's scope. A token for chosen applications gets `403` for any other key, whether or not that application exists, and for one of its own once it is archived.
-  - `404`: a token for every application asked for one that does not exist or is archived, a flag that does not exist or is archived, or any other path.
+  - `403`: the token is read-only and the request writes, which is checked before anything else about a write, or the application is outside the token's scope. A token for chosen applications gets `403` for any other key, whether or not that application exists, and for one of its own once it is archived.
+  - `404`: a token for every application asked for one that does not exist or is archived, a flag or environment that does not exist or is archived, or any other path or method.
+  - `409`: a flag with that key already exists, archived or not.
 - **Credentials:** only management tokens work here. SDK keys and the dashboard's session cookie get `401`; a management token opens no dashboard page and gets `401` from the evaluation API.
 - **Archived items:** archived applications, environments and flags are left out of the lists; the history still shows the changes made to them.
 - **Caching and last use:** responses carry `Cache-Control: no-store`. A token's last use is recorded at most once a minute and shown on the Tokens page.

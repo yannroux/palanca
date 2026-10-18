@@ -39,7 +39,7 @@ builder.Services.AddScoped<BoardQueries>();
 builder.Services.AddScoped<HistoryQueries>();
 builder.Services.AddScoped<SdkKeyCommands>();
 builder.Services.AddScoped<ManagementTokenCommands>();
-builder.Services.AddScoped<ManagementQueries>();
+builder.Services.AddManagementApi();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<NewSecretHandoff>();
 builder.Services.AddClientAddress();

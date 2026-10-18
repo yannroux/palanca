@@ -34,6 +34,13 @@ internal sealed class ManagementQueries(PalancaDbContext db, HistoryQueries hist
     public Task<Application?> ApplicationAsync(string key, CancellationToken cancellationToken) =>
         db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Key == key && a.ArchivedAt == null, cancellationToken);
 
+    /// <summary>The keys of the application's environments.</summary>
+    public Task<List<string>> EnvironmentKeysAsync(Application application, CancellationToken cancellationToken) =>
+        db.Environments.AsNoTracking()
+            .Where(e => e.ApplicationId == application.Id && e.ArchivedAt == null)
+            .Select(e => e.Key)
+            .ToListAsync(cancellationToken);
+
     /// <summary>The applications in the token's scope, with their environments.</summary>
     public async Task<ApplicationsResponse> ApplicationsAsync(ManagementCaller caller, CancellationToken cancellationToken)
     {
