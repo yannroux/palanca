@@ -1,0 +1,777 @@
+/*
+  Palanca: the Departure Board world. A concourse-grey ground, a charcoal board for the shell, and split-flap
+  tiles whose hinge line is the only depth. Signal yellow means ON and marks what is current; red is reserved
+  for protected environments and destructive actions. Flat colour only: no shadows, gradients or blur.
+*/
+
+@font-face { font-family: "Barlow"; font-weight: 400; font-display: swap; src: url("../fonts/barlow-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow"; font-weight: 500; font-display: swap; src: url("../fonts/barlow-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow"; font-weight: 600; font-display: swap; src: url("../fonts/barlow-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 500; font-display: swap; src: url("../fonts/barlow-condensed-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 600; font-display: swap; src: url("../fonts/barlow-condensed-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 700; font-display: swap; src: url("../fonts/barlow-condensed-latin-700-normal.woff2") format("woff2"); }
+
+:root {
+    /* Ground and surfaces */
+    --ground: #EDEFEE;
+    --surface: #FFFFFF;
+    --rule: #D3D6D5;
+    --field-border: #8A8F90;
+    --code-ground: #DFE2E1;
+    --disabled: #DADDDC;
+
+    /* The board */
+    --board: #1C1E1F;
+    --flap: #2A2D2F;
+    --hinge: #0B0C0D;
+    --letter: #F4F1E8;
+    --letter-muted: #B9BCBD;
+    --letter-off: #9DA1A3;
+
+    /* Ink */
+    --ink: #1C1E1F;
+    --muted: #5E6366;
+    --placeholder: #6E7376;
+
+    /* Signals */
+    --on: #F2B705;
+    --on-hover: #FFC93D;
+    --recent: #7A5800;
+    --protect: #C8102E;
+    --protect-dark: #A30D25;
+    --protect-on-board: #FF6B7A;
+
+    --font-ui: "Barlow", system-ui, sans-serif;
+    --font-board: "Barlow Condensed", "Barlow", system-ui, sans-serif;
+
+    /* One module: tiles, rows and controls are multiples of it. */
+    --module: 4px;
+    --control-height: calc(var(--module) * 10);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    color-scheme: light;
+    -webkit-text-size-adjust: 100%;
+    scrollbar-color: var(--muted) var(--ground);
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--ground);
+    color: var(--ink);
+    font: 400 15px/1.5 var(--font-ui);
+    caret-color: var(--ink);
+}
+
+::selection {
+    background: var(--on);
+    color: var(--ink);
+}
+
+h1 {
+    margin: 0;
+    font: 700 40px/1 var(--font-board);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-wrap: balance;
+}
+
+h2 {
+    margin: 0 0 8px;
+    font: 700 22px/1.1 var(--font-board);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+p {
+    margin: 0 0 16px;
+}
+
+a {
+    color: var(--ink);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+
+code {
+    padding: 1px 5px;
+    border-radius: 2px;
+    background: var(--code-ground);
+    font: 500 0.92em/1.4 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+}
+
+.board-bar :focus-visible,
+.gate-panel :focus-visible {
+    outline-color: var(--on);
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.icon {
+    flex: none;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+/* The board bar: the shell's header on every page. */
+
+.board-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 40px;
+    min-height: calc(var(--module) * 16);
+    padding: 0 40px;
+    background: var(--board);
+    color: var(--letter-muted);
+}
+
+.board-home {
+    display: inline-flex;
+    padding: 12px 0;
+    text-decoration: none;
+}
+
+.wordmark {
+    display: inline-flex;
+    gap: 3px;
+}
+
+.flap {
+    position: relative;
+    z-index: 0;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 30px;
+    border-radius: 2px;
+    background: var(--flap);
+    color: var(--letter);
+    font: 700 19px/1 var(--font-board);
+}
+
+/* The gap between a tile's two flaps, drawn behind the letter so it never reads as a strike-through. */
+.flap::after {
+    content: "";
+    position: absolute;
+    inset: 50% 0 auto;
+    z-index: -1;
+    height: 1px;
+    background: var(--hinge);
+}
+
+.wordmark-large .flap {
+    width: 30px;
+    height: 40px;
+    font-size: 26px;
+}
+
+.board-nav {
+    display: flex;
+    align-self: stretch;
+    gap: 28px;
+}
+
+.board-nav a {
+    display: flex;
+    align-items: center;
+    padding-top: 3px;
+    border-bottom: 3px solid transparent;
+    color: var(--letter-muted);
+    font: 600 15px/1 var(--font-board);
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+.board-nav a:hover {
+    color: var(--letter);
+}
+
+.board-nav a.active {
+    border-bottom-color: var(--on);
+    color: var(--letter);
+}
+
+.board-owner {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-left: auto;
+    font-size: 14px;
+}
+
+.board-owner form {
+    margin: 0;
+}
+
+.board-sign-out {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0;
+    border: 0;
+    background: none;
+    color: var(--letter);
+    font: 600 14px/1 var(--font-board);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.board-sign-out:hover {
+    color: var(--on);
+}
+
+/* Pages inside the shell */
+
+.page {
+    padding: 32px 40px 64px;
+}
+
+.page-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 24px;
+    margin-bottom: 24px;
+}
+
+.page-meta {
+    margin: 0;
+    color: var(--muted);
+}
+
+/* Buttons: rest, hover, focus, pressed and disabled each have their own mark. */
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: var(--control-height);
+    padding: 0 18px;
+    border: 1px solid var(--board);
+    border-radius: 3px;
+    background: var(--board);
+    color: var(--letter);
+    font: 600 15px/1 var(--font-board);
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
+}
+
+.button:hover {
+    background: var(--hinge);
+    color: var(--on);
+}
+
+.button:active {
+    transform: translateY(1px);
+}
+
+.button:disabled {
+    border-color: var(--disabled);
+    background: var(--disabled);
+    color: var(--muted);
+    cursor: not-allowed;
+    transform: none;
+}
+
+.button[aria-busy="true"] {
+    cursor: progress;
+}
+
+.button-signal {
+    border-color: var(--on);
+    background: var(--on);
+    color: var(--ink);
+}
+
+.button-signal:hover {
+    border-color: var(--on-hover);
+    background: var(--on-hover);
+    color: var(--ink);
+}
+
+.button-quiet {
+    border-color: var(--field-border);
+    background: transparent;
+    color: var(--ink);
+}
+
+.button-quiet:hover {
+    border-color: var(--ink);
+    background: var(--surface);
+    color: var(--ink);
+}
+
+.button-danger {
+    border-color: var(--protect);
+    background: transparent;
+    color: var(--protect);
+}
+
+.button-danger:hover {
+    background: var(--protect);
+    color: var(--surface);
+}
+
+.button-danger-solid {
+    border-color: var(--protect);
+    background: var(--protect);
+    color: var(--surface);
+}
+
+.button-danger-solid:hover {
+    border-color: var(--protect-dark);
+    background: var(--protect-dark);
+    color: var(--surface);
+}
+
+/* Fields */
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--muted);
+    font: 600 14px/1 var(--font-board);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+input:not([type]),
+input[type="text"] {
+    width: 100%;
+    height: var(--control-height);
+    padding: 0 12px;
+    border: 1px solid var(--field-border);
+    border-radius: 3px;
+    background: var(--surface);
+    color: var(--ink);
+    font: 400 15px/1 var(--font-ui);
+}
+
+input::placeholder {
+    color: var(--placeholder);
+}
+
+input:not([type]):hover,
+input[type="text"]:hover {
+    border-color: var(--ink);
+}
+
+input:not([type]):focus-visible,
+input[type="text"]:focus-visible {
+    border-color: var(--ink);
+    outline-offset: 1px;
+}
+
+input:user-invalid {
+    border-color: var(--protect);
+}
+
+/* Notices */
+
+.notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    max-width: 64ch;
+    margin: 0 0 20px;
+    padding: 12px 16px;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--surface);
+}
+
+.notice p {
+    margin: 0;
+}
+
+.notice .icon {
+    margin-top: 2px;
+    color: var(--muted);
+}
+
+.notice-success .icon {
+    color: var(--recent);
+}
+
+.notice-error {
+    border-color: var(--protect);
+}
+
+.notice-error .icon {
+    color: var(--protect);
+}
+
+/* The gate: sign-in and enrollment, a single board panel on the concourse. */
+
+.gate {
+    display: grid;
+    justify-items: start;
+    gap: 20px;
+    width: min(100%, 600px);
+    margin: 0 auto;
+    padding: 72px 40px;
+}
+
+.gate-panel {
+    width: 100%;
+    padding: 32px;
+    border-radius: 4px;
+    background: var(--board);
+    color: var(--letter);
+}
+
+.gate-panel h1 {
+    margin-bottom: 12px;
+    color: var(--on);
+    font-size: 32px;
+}
+
+.gate-panel p {
+    max-width: 46ch;
+    margin-bottom: 24px;
+    color: var(--letter-muted);
+}
+
+.gate-panel label {
+    color: var(--letter-muted);
+}
+
+.gate-panel code {
+    background: var(--flap);
+    color: var(--letter);
+}
+
+.gate-panel .notice {
+    border-color: var(--flap);
+    background: var(--flap);
+    color: var(--letter);
+}
+
+.gate-panel .notice p {
+    margin: 0;
+    color: var(--letter);
+}
+
+.gate-panel .notice-success .icon {
+    color: var(--on);
+}
+
+.gate-panel .notice-error {
+    border-color: var(--protect-on-board);
+}
+
+.gate-panel .notice-error .icon {
+    color: var(--protect-on-board);
+}
+
+.gate-panel .notice .icon {
+    color: var(--letter-muted);
+}
+
+.gate-form input {
+    margin-bottom: 20px;
+}
+
+.gate-panel .gate-note {
+    margin: 0;
+    color: var(--letter-muted);
+}
+
+.gate-help {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+/* Ledger tables */
+
+.ledger {
+    width: 100%;
+    max-width: 1100px;
+    border: 1px solid var(--rule);
+    border-collapse: collapse;
+    background: var(--surface);
+    font-variant-numeric: tabular-nums;
+}
+
+.ledger th {
+    height: 44px;
+    padding: 0 16px;
+    border-bottom: 2px solid var(--ink);
+    color: var(--muted);
+    font: 600 14px/1 var(--font-board);
+    letter-spacing: 0.12em;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.ledger td {
+    height: calc(var(--module) * 14);
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: middle;
+}
+
+.cell-name {
+    font: 600 17px/1.2 var(--font-board);
+    letter-spacing: 0.03em;
+}
+
+.cell-name .icon {
+    margin-right: 10px;
+    color: var(--muted);
+    vertical-align: -2px;
+}
+
+.cell-time {
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.cell-actions {
+    width: 1%;
+    white-space: nowrap;
+}
+
+.cell-note {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: var(--control-height);
+}
+
+/* Routine and destructive actions stand apart. */
+.row-actions {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 32px;
+    margin: 0;
+}
+
+.rename summary {
+    color: var(--ink);
+    font: 600 14px/var(--control-height) var(--font-board);
+    letter-spacing: 0.1em;
+    text-decoration: underline;
+    text-transform: uppercase;
+    text-underline-offset: 4px;
+    list-style: none;
+    cursor: pointer;
+}
+
+.rename summary::-webkit-details-marker {
+    display: none;
+}
+
+.rename summary:hover {
+    text-decoration-thickness: 2px;
+}
+
+.rename-form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.rename-form input {
+    width: 220px;
+}
+
+/* Confirmation: a popover over a flat dimmed page, opened without script. */
+
+.confirm {
+    width: min(100% - 32px, 440px);
+    padding: 24px;
+    border: 1px solid var(--ink);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--ink);
+    white-space: normal;
+}
+
+.confirm::backdrop {
+    background: rgb(28 30 31 / 0.5);
+}
+
+.confirm-title {
+    margin-bottom: 8px;
+    font: 700 22px/1.1 var(--font-board);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.confirm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+/* Adding a passkey */
+
+.add-passkey {
+    max-width: 760px;
+    margin-top: 48px;
+}
+
+.add-passkey p {
+    max-width: 65ch;
+    color: var(--muted);
+}
+
+.inline-form {
+    display: grid;
+    grid-template-columns: minmax(0, 320px) auto;
+    align-items: end;
+    justify-content: start;
+    gap: 0 12px;
+}
+
+.inline-form label {
+    grid-column: 1 / -1;
+}
+
+/* Empty states */
+
+.empty {
+    max-width: 640px;
+    padding: 32px;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--surface);
+}
+
+.empty p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.empty .empty-title {
+    margin-bottom: 4px;
+    color: var(--ink);
+    font: 700 22px/1.1 var(--font-board);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* Phone width: same world, one column. */
+
+@media (max-width: 720px) {
+    .board-bar {
+        gap: 0 20px;
+        padding: 0 16px;
+    }
+
+    .board-owner-email {
+        display: none;
+    }
+
+    .flap {
+        width: 18px;
+        height: 26px;
+        font-size: 16px;
+    }
+
+    .page {
+        padding: 24px 16px 48px;
+    }
+
+    .gate {
+        padding: 32px 16px;
+    }
+
+    .gate-panel {
+        padding: 24px 20px;
+    }
+
+    h1 {
+        font-size: 32px;
+    }
+
+    .ledger thead {
+        display: none;
+    }
+
+    .ledger,
+    .ledger tbody,
+    .ledger tr,
+    .ledger td {
+        display: block;
+    }
+
+    .ledger tr {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .ledger td {
+        height: auto;
+        padding: 2px 0;
+        border: 0;
+    }
+
+    /* Without the header row, each value names its column. */
+    .ledger td[data-label]::before {
+        content: attr(data-label);
+        display: inline-block;
+        min-width: 96px;
+        color: var(--muted);
+        font: 600 13px/1 var(--font-board);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    .cell-actions {
+        width: auto;
+    }
+
+    .row-actions {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 8px 32px;
+    }
+
+    .inline-form {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .inline-form label {
+        margin-bottom: -4px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .button {
+        transition: none;
+    }
+}

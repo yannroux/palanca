@@ -1,0 +1,24 @@
+@inherits LayoutComponentBase
+
+<header class="board-bar">
+    <a class="board-home" href="/"><Wordmark /></a>
+    <nav class="board-nav" aria-label="Main">
+        <NavLink href="/" Match="NavLinkMatch.All">Applications</NavLink>
+        <NavLink href="/passkeys">Passkeys</NavLink>
+    </nav>
+    <div class="board-owner">
+        <span class="board-owner-email">@HttpContext.User.Identity?.Name</span>
+        <form method="post" action="/sign-out">
+            <AntiforgeryToken />
+            <button type="submit" class="board-sign-out"><Icon Name="sign-out" />Sign out</button>
+        </form>
+    </div>
+</header>
+<main class="page" id="main">
+    @Body
+</main>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+}

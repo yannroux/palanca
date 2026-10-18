@@ -1,0 +1,235 @@
+@page "/passkeys"
+@using System.Buffers.Text
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using Palanca.Data
+@inject OwnerAccounts Accounts
+@inject UserManager<Owner> UserManager
+@inject SignInManager<Owner> SignInManager
+@inject PalancaDbContext Db
+@inject NavigationManager Navigation
+
+<PageTitle>Passkeys · Palanca</PageTitle>
+
+<div class="page-head">
+    <h1>Passkeys</h1>
+    <p class="page-meta">@passkeys.Count of @OwnerAccounts.MaxPasskeys · Sign in with any of them.</p>
+</div>
+
+@if (message is not null)
+{
+    <Notice Kind="kind">@message</Notice>
+}
+
+<table class="ledger">
+    <thead>
+        <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Registered</th>
+            <th scope="col">Last used</th>
+            <th scope="col"><span class="visually-hidden">Actions</span></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var passkey in passkeys)
+        {
+            var id = Base64Url.EncodeToString(passkey.CredentialId);
+            <tr>
+                <td class="cell-name"><Icon Name="key" />@passkey.Name</td>
+                <td class="cell-time" data-label="Registered">@Format(passkey.CreatedAt)</td>
+                <td class="cell-time" data-label="Last used">@(passkey.LastUsedAt is { } lastUsed ? Format(lastUsed) : "Never")</td>
+                <td class="cell-actions">
+                    <form method="post" @formname="@($"passkey-{id}")" @onsubmit="UpdateAsync" class="row-actions">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="CredentialId" value="@id" />
+                        <details class="rename">
+                            <summary>Rename</summary>
+                            <div class="rename-form">
+                                <label for="name-@id" class="visually-hidden">New name for @passkey.Name</label>
+                                <input id="name-@id" name="Name" value="@passkey.Name" required maxlength="64" autocomplete="off" />
+                                <button type="submit" name="Action" value="rename" class="button button-quiet">Save name</button>
+                            </div>
+                        </details>
+                        @if (passkeys.Count > 1)
+                        {
+                            <button type="button" class="button button-danger" popovertarget="remove-@id">Remove</button>
+                            <div popover id="remove-@id" class="confirm" role="dialog" aria-labelledby="remove-title-@id">
+                                <p id="remove-title-@id" class="confirm-title">Remove @passkey.Name?</p>
+                                <p>It stops working at once. Every other session must sign in again; this one stays signed in.</p>
+                                <div class="confirm-actions">
+                                    <button type="submit" name="Action" value="remove" formnovalidate class="button button-danger-solid">Remove passkey</button>
+                                    <button type="button" popovertarget="remove-@id" popovertargetaction="hide" class="button button-quiet">Keep it</button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="cell-note">The only passkey cannot be removed.</span>
+                        }
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<section class="add-passkey" aria-labelledby="add-title">
+    <h2 id="add-title">Add a passkey</h2>
+    <p>Keep a passkey on a second device, or in a password manager that syncs, so losing one device does not lock you out.</p>
+    @if (passkeys.Count >= OwnerAccounts.MaxPasskeys)
+    {
+        <Notice>You have @OwnerAccounts.MaxPasskeys passkeys, the most Palanca allows. Remove one before adding another.</Notice>
+    }
+    else
+    {
+        <form method="post" @formname="add-passkey" @onsubmit="AddAsync" class="inline-form">
+            <AntiforgeryToken />
+            <label for="new-passkey-name">Passkey name</label>
+            <input id="new-passkey-name" name="Input.Name" value="@Input?.Name" required maxlength="64" autocomplete="off" placeholder="Phone" />
+            <PasskeySubmit Operation="create" OptionsUrl="/passkeys/options" Name="Input.Credential" Class="button">Add passkey</PasskeySubmit>
+        </form>
+    }
+</section>
+
+@code {
+    private Owner? owner;
+    private List<OwnerPasskey> passkeys = [];
+    private string? message;
+    private NoticeKind kind;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromQuery(Name = "status")]
+    private string? Status { get; set; }
+
+    // Row forms carry these; each row's form has its own name, so they are bound from whichever was posted.
+    [SupplyParameterFromForm]
+    private string? CredentialId { get; set; }
+
+    [SupplyParameterFromForm]
+    private string? Action { get; set; }
+
+    [SupplyParameterFromForm]
+    private string? Name { get; set; }
+
+    [SupplyParameterFromForm(FormName = "add-passkey")]
+    private AddInput? Input { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        owner = await UserManager.GetUserAsync(HttpContext.User);
+        await LoadAsync();
+        (message, kind) = Status switch
+        {
+            "added" => ("Passkey added.", NoticeKind.Success),
+            "renamed" => ("Passkey renamed.", NoticeKind.Success),
+            "removed" => ("Passkey removed. Every other session must sign in again.", NoticeKind.Success),
+            _ => (null, NoticeKind.Info),
+        };
+    }
+
+    private async Task LoadAsync() =>
+        passkeys = owner is null
+            ? []
+            : await Db.OwnerPasskeys.AsNoTracking().Where(p => p.OwnerId == owner.Id).OrderBy(p => p.CreatedAt).ToListAsync(HttpContext.RequestAborted);
+
+    private async Task AddAsync()
+    {
+        var name = OwnerAccounts.NormalizePasskeyName(Input?.Name);
+        if (owner is null || name is null)
+        {
+            Fail("Give the passkey a name of 1 to 64 characters.");
+            return;
+        }
+
+        if (Input?.Credential?.CredentialJson is not { Length: > 0 } credentialJson)
+        {
+            Fail(PasskeyInput.ErrorMessage(Input?.Credential?.Error));
+            return;
+        }
+
+        switch (await Accounts.AddPasskeyAsync(owner, credentialJson, name, enrollment: null, HttpContext.RequestAborted))
+        {
+            case PasskeyChangeOutcome.Done:
+                Navigation.NavigateTo("/passkeys?status=added");
+                break;
+            case PasskeyChangeOutcome.LimitReached:
+                Fail($"You already have {OwnerAccounts.MaxPasskeys} passkeys. Remove one before adding another.");
+                break;
+            case PasskeyChangeOutcome.Expired:
+                Fail("Adding the passkey took too long. Try again.");
+                break;
+            default:
+                Fail("The passkey could not be added. Try again.");
+                break;
+        }
+    }
+
+    private async Task UpdateAsync()
+    {
+        byte[] credentialId;
+        try
+        {
+            credentialId = Base64Url.DecodeFromChars(CredentialId);
+        }
+        catch (FormatException)
+        {
+            Fail("That passkey does not exist.");
+            return;
+        }
+
+        if (owner is null)
+        {
+            return;
+        }
+
+        if (Action == "rename")
+        {
+            var name = OwnerAccounts.NormalizePasskeyName(Name);
+            if (name is null)
+            {
+                Fail("Give the passkey a name of 1 to 64 characters.");
+            }
+            else if (await Accounts.RenamePasskeyAsync(owner, credentialId, name, HttpContext.RequestAborted) == PasskeyChangeOutcome.Done)
+            {
+                Navigation.NavigateTo("/passkeys?status=renamed");
+            }
+            else
+            {
+                Fail("That passkey does not exist.");
+            }
+
+            return;
+        }
+
+        switch (Action == "remove" ? await Accounts.RemovePasskeyAsync(owner, credentialId, HttpContext.RequestAborted) : PasskeyChangeOutcome.NotFound)
+        {
+            case PasskeyChangeOutcome.Done:
+                // The security stamp changed; give this session the new one so only the others end.
+                await SignInManager.RefreshSignInAsync(owner);
+                Navigation.NavigateTo("/passkeys?status=removed");
+                break;
+            case PasskeyChangeOutcome.LastPasskey:
+                Fail("The only passkey cannot be removed. Add another one first.");
+                break;
+            default:
+                Fail("That passkey does not exist.");
+                break;
+        }
+    }
+
+    private void Fail(string error)
+    {
+        HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+        (message, kind) = (error, NoticeKind.Error);
+    }
+
+    private static string Format(DateTime utc) => utc.ToString("d MMM yyyy, HH:mm 'UTC'", CultureInfo.InvariantCulture);
+
+    private sealed class AddInput
+    {
+        public string? Name { get; set; }
+        public PasskeyInput? Credential { get; set; }
+    }
+}

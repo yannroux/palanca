@@ -217,6 +217,94 @@ namespace Palanca.Data.Migrations
                     b.ToTable("FlagValues");
                 });
 
+            modelBuilder.Entity("Palanca.Data.Owner", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SecurityStamp")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("Owners");
+                });
+
+            modelBuilder.Entity("Palanca.Data.OwnerEnrollment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("Hash")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("BLOB");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Hash")
+                        .IsUnique();
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("OwnerEnrollments");
+                });
+
+            modelBuilder.Entity("Palanca.Data.OwnerPasskey", b =>
+                {
+                    b.Property<byte[]>("CredentialId")
+                        .HasMaxLength(1023)
+                        .HasColumnType("BLOB");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("CredentialId");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("OwnerPasskeys");
+                });
+
             modelBuilder.Entity("Palanca.Data.SdkKey", b =>
                 {
                     b.Property<int>("Id")
@@ -299,6 +387,28 @@ namespace Palanca.Data.Migrations
                     b.Navigation("Flag");
                 });
 
+            modelBuilder.Entity("Palanca.Data.OwnerEnrollment", b =>
+                {
+                    b.HasOne("Palanca.Data.Owner", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("Palanca.Data.OwnerPasskey", b =>
+                {
+                    b.HasOne("Palanca.Data.Owner", "Owner")
+                        .WithMany("Passkeys")
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
+                });
+
             modelBuilder.Entity("Palanca.Data.SdkKey", b =>
                 {
                     b.HasOne("Palanca.Data.AppEnvironment", "Environment")
@@ -320,6 +430,11 @@ namespace Palanca.Data.Migrations
             modelBuilder.Entity("Palanca.Data.Flag", b =>
                 {
                     b.Navigation("Values");
+                });
+
+            modelBuilder.Entity("Palanca.Data.Owner", b =>
+                {
+                    b.Navigation("Passkeys");
                 });
 #pragma warning restore 612, 618
         }

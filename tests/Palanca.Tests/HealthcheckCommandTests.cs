@@ -25,9 +25,10 @@ public sealed class HealthcheckCommandTests(PalancaFactory factory) : IClassFixt
     }
 
     [Fact]
-    public async Task FailsWhenTheEndpointAnswersWithAnError()
+    public async Task FailsWhenTheEndpointDoesNotAnswerWithSuccess()
     {
-        using var client = factory.CreateClient();
+        // Signed out, an unknown route redirects to sign-in, as the command's own client would see it.
+        using var client = factory.CreateClient(new() { AllowAutoRedirect = false });
 
         var exitCode = await HealthcheckCommand.RunAsync(client, new Uri(client.BaseAddress!, "/no-such-route"), TestContext.Current.CancellationToken);
 

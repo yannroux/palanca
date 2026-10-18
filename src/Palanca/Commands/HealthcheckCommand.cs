@@ -21,7 +21,8 @@ internal static class HealthcheckCommand
 
     public static async Task<int> RunAsync(Uri livenessUri, CancellationToken cancellationToken)
     {
-        using var client = new HttpClient { Timeout = Timeout };
+        // A redirect is not an answer from the liveness endpoint, so it must not be followed to a page that answers 200.
+        using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = Timeout };
         return await RunAsync(client, livenessUri, cancellationToken);
     }
 

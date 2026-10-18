@@ -1,0 +1,13 @@
+@* The product name set as split-flap tiles, the board's own lettering. *@
+<span class="wordmark @(Large ? "wordmark-large" : null)">
+    <span class="visually-hidden">Palanca</span>
+    @foreach (var letter in "PALANCA")
+    {
+        <span class="flap" aria-hidden="true">@letter</span>
+    }
+</span>
+
+@code {
+    [Parameter]
+    public bool Large { get; set; }
+}

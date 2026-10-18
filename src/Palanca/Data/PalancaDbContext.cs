@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -7,6 +8,8 @@ internal sealed class PalancaDbContext(DbContextOptions<PalancaDbContext> option
 {
     private const int NameMaxLength = 200;
     private const int TextMaxLength = 1000;
+    public const int EmailMaxLength = 254;
+    public const int PasskeyNameMaxLength = 64;
 
     public DbSet<Application> Applications => Set<Application>();
     public DbSet<AppEnvironment> Environments => Set<AppEnvironment>();
@@ -14,6 +17,9 @@ internal sealed class PalancaDbContext(DbContextOptions<PalancaDbContext> option
     public DbSet<FlagValue> FlagValues => Set<FlagValue>();
     public DbSet<SdkKey> SdkKeys => Set<SdkKey>();
     public DbSet<ChangeRecord> ChangeRecords => Set<ChangeRecord>();
+    public DbSet<Owner> Owners => Set<Owner>();
+    public DbSet<OwnerPasskey> OwnerPasskeys => Set<OwnerPasskey>();
+    public DbSet<OwnerEnrollment> OwnerEnrollments => Set<OwnerEnrollment>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -77,9 +83,36 @@ internal sealed class PalancaDbContext(DbContextOptions<PalancaDbContext> option
             record.Property(r => r.NewValue).HasMaxLength(TextMaxLength);
             record.HasIndex(r => r.ApplicationId);
         });
+
+        modelBuilder.Entity<Owner>(owner =>
+        {
+            owner.Property(o => o.Email).HasMaxLength(EmailMaxLength);
+            owner.Property(o => o.SecurityStamp).HasMaxLength(64);
+            owner.HasIndex(o => o.Email).IsUnique();
+        });
+
+        modelBuilder.Entity<OwnerPasskey>(passkey =>
+        {
+            passkey.HasKey(p => p.CredentialId);
+            passkey.Property(p => p.CredentialId).HasMaxLength(1023);
+            passkey.Property(p => p.Name).HasMaxLength(PasskeyNameMaxLength);
+            passkey.Property(p => p.Data).HasConversion<PasskeyDataConverter>();
+            passkey.HasOne(p => p.Owner).WithMany(o => o.Passkeys).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OwnerEnrollment>(enrollment =>
+        {
+            enrollment.Property(e => e.Hash).HasMaxLength(32);
+            enrollment.HasIndex(e => e.Hash).IsUnique();
+            enrollment.HasOne(e => e.Owner).WithMany().OnDelete(DeleteBehavior.Cascade);
+        });
     }
 
     private sealed class UtcDateTimeConverter() : ValueConverter<DateTime, DateTime>(
         value => value.Kind == DateTimeKind.Local ? value.ToUniversalTime() : value,
         value => DateTime.SpecifyKind(value, DateTimeKind.Utc));
+
+    private sealed class PasskeyDataConverter() : ValueConverter<OwnerPasskeyData, string>(
+        value => JsonSerializer.Serialize(value, JsonSerializerOptions.Web),
+        value => JsonSerializer.Deserialize<OwnerPasskeyData>(value, JsonSerializerOptions.Web)!);
 }

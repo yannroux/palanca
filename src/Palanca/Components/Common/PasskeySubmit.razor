@@ -1,0 +1,43 @@
+@using Microsoft.AspNetCore.Antiforgery
+@inject IAntiforgery Antiforgery
+
+@*
+    A submit button that runs a passkey ceremony before the form is posted. The script in js/passkeys.js asks
+    OptionsUrl for WebAuthn options, calls the browser, and adds the credential (or an error code) to the form
+    as Name.CredentialJson or Name.Error.
+*@
+<button type="submit" name="__passkeySubmit" class="@Class" disabled="@Disabled">@ChildContent</button>
+<passkey-submit operation="@Operation" options-url="@OptionsUrl" name="@Name" token-field="@TokenField"
+                request-token-name="@tokens?.HeaderName" request-token-value="@tokens?.RequestToken"></passkey-submit>
+
+@code {
+    private AntiforgeryTokenSet? tokens;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    /// <summary><c>create</c> registers a passkey; <c>request</c> signs in with one.</summary>
+    [Parameter, EditorRequired]
+    public string Operation { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string OptionsUrl { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = "";
+
+    /// <summary>The form field whose value the options request sends as its token, for enrollment.</summary>
+    [Parameter]
+    public string? TokenField { get; set; }
+
+    [Parameter]
+    public string Class { get; set; } = "button";
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    protected override void OnInitialized() => tokens = Antiforgery.GetAndStoreTokens(HttpContext);
+}

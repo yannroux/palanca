@@ -1,0 +1,111 @@
+@page "/enroll"
+@layout GateLayout
+@attribute [AllowAnonymous]
+@inject OwnerAccounts Accounts
+@inject Palanca.Security.FailedAuthenticationLimiter Limiter
+@inject NavigationManager Navigation
+
+<PageTitle>Register a passkey · Palanca</PageTitle>
+
+<section class="gate-panel" aria-labelledby="enroll-title">
+    <h1 id="enroll-title">Register a passkey</h1>
+    <p data-enrollment-form>This link registers a passkey for the owner account. Name the passkey after the device or password manager that keeps it.</p>
+    @if (error is not null)
+    {
+        <Notice Kind="NoticeKind.Error">@error</Notice>
+    }
+    @if (error is null)
+    {
+        <p class="gate-note" data-enrollment-missing hidden>
+            This page works only from an enrollment link. On the host, run <code>owner enroll &lt;email&gt;</code> to get one.
+        </p>
+    }
+    <form method="post" @formname="enroll" @onsubmit="EnrollAsync" class="gate-form" data-enrollment-form>
+        <AntiforgeryToken />
+        @* The script fills the token from the link; it is never written back into a page (AC-011). *@
+        <input type="hidden" name="Input.Token" data-enrollment-token />
+        <label for="passkey-name">Passkey name</label>
+        <input id="passkey-name" name="Input.Name" value="@Input?.Name" required maxlength="64" autocomplete="off" placeholder="This laptop" />
+        <PasskeySubmit Operation="create" OptionsUrl="/enroll/options" Name="Input.Credential" TokenField="Input.Token" Class="button button-signal">
+            <Icon Name="key" Size="20" />Register passkey
+        </PasskeySubmit>
+    </form>
+    <noscript><p class="gate-note">Passkeys need JavaScript. Allow it for this site to register one.</p></noscript>
+</section>
+
+@code {
+    private const string InvalidLink =
+        "This enrollment link is invalid, used, or expired. On the host, run owner enroll <email>, or owner recover, for a new one.";
+
+    // The page never shows the token again, so a retry starts from the link, which works until it is used or expires.
+    private const string Retry = " Open the enrollment link again to retry.";
+
+    private string? error;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromForm(FormName = "enroll")]
+    private EnrollInput? Input { get; set; }
+
+    private async Task EnrollAsync()
+    {
+        if (Limiter.IsLimited(HttpContext.Connection.RemoteIpAddress))
+        {
+            Fail("Too many failed attempts from this address. Wait a minute, then open the enrollment link again.", StatusCodes.Status429TooManyRequests);
+            return;
+        }
+
+        var name = OwnerAccounts.NormalizePasskeyName(Input?.Name);
+        if (name is null)
+        {
+            Fail("Give the passkey a name of 1 to 64 characters." + Retry);
+            return;
+        }
+
+        if (Input?.Credential?.CredentialJson is not { Length: > 0 } credentialJson)
+        {
+            var code = Input?.Credential?.Error;
+            Fail(code == "options-400" ? InvalidLink : PasskeyInput.ErrorMessage(code) + Retry,
+                code == "options-429" ? StatusCodes.Status429TooManyRequests : StatusCodes.Status400BadRequest);
+            return;
+        }
+
+        var enrollment = await Accounts.FindEnrollmentAsync(Input.Token, HttpContext.RequestAborted);
+        if (enrollment is null)
+        {
+            Limiter.RecordFailure(HttpContext.Connection.RemoteIpAddress);
+            Fail(InvalidLink);
+            return;
+        }
+
+        switch (await Accounts.AddPasskeyAsync(enrollment.Owner, credentialJson, name, enrollment, HttpContext.RequestAborted))
+        {
+            case PasskeyChangeOutcome.Done:
+                Navigation.NavigateTo("/sign-in?status=enrolled");
+                break;
+            case PasskeyChangeOutcome.Expired:
+                Fail("The registration took too long, or the link was already used. Open the link again, or run owner recover on the host for a new one.");
+                break;
+            case PasskeyChangeOutcome.LimitReached:
+                Fail("The owner already has 10 passkeys, the most Palanca allows.");
+                break;
+            default:
+                Fail("The passkey could not be registered." + Retry);
+                break;
+        }
+    }
+
+    private void Fail(string message, int statusCode = StatusCodes.Status400BadRequest)
+    {
+        HttpContext.Response.StatusCode = statusCode;
+        error = message;
+    }
+
+    private sealed class EnrollInput
+    {
+        public string? Token { get; set; }
+        public string? Name { get; set; }
+        public PasskeyInput? Credential { get; set; }
+    }
+}

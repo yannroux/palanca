@@ -1,15 +1,26 @@
+using System.Net;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Palanca.Data;
 
 namespace Palanca.Tests;
 
-/// <summary>Runs the app against its own SQLite database in a temporary directory.</summary>
+/// <summary>
+/// Runs the app against its own SQLite database in a temporary directory. Clients use HTTPS, as browsers do
+/// through the proxy, so the dashboard's Secure-only cookies and antiforgery checks behave as in production.
+/// </summary>
 public sealed class PalancaFactory : WebApplicationFactory<Program>
 {
+    /// <summary>The dashboard origin the app is configured with, and the origin a test authenticator reports.</summary>
+    public const string Origin = "https://localhost";
+
     private readonly string _environment;
     private readonly TempDirectory? _ownedDirectory;
 
@@ -28,6 +39,7 @@ public sealed class PalancaFactory : WebApplicationFactory<Program>
         }
 
         DataDirectory = directory;
+        ClientOptions.BaseAddress = new Uri(Origin);
     }
 
     /// <summary>Uses a directory the caller owns, so several factories can share one database.</summary>
@@ -39,17 +51,53 @@ public sealed class PalancaFactory : WebApplicationFactory<Program>
 
     public string BackupDirectory => Path.Combine(DataDirectory, "backups");
 
+    /// <summary>Replaces the app's clock, for tests of expiry and session limits.</summary>
+    public FakeTimeProvider? Time { get; init; }
+
+    /// <summary>Settings added after the defaults, such as trusted proxies.</summary>
+    public IReadOnlyDictionary<string, string?> Settings { get; init; } = new Dictionary<string, string?>();
+
+    /// <summary>The address requests appear to come from; the test server sets none.</summary>
+    public IPAddress? PeerAddress { get; init; }
+
+    /// <summary>Receives the app's logs, for tests of what they contain.</summary>
+    public ILoggerProvider? Logs { get; init; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(_environment);
-        builder.ConfigureAppConfiguration(configuration => configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        builder.ConfigureAppConfiguration(configuration =>
         {
-            ["Palanca:Database:FilePath"] = DatabasePath,
-            ["Palanca:Database:BackupDirectory"] = BackupDirectory,
-            ["Logging:LogLevel:Default"] = "Warning",
-            // Tests that expect a constraint violation would otherwise print its stack trace.
-            ["Logging:LogLevel:Microsoft.EntityFrameworkCore"] = "None",
-        }));
+            configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Palanca:Database:FilePath"] = DatabasePath,
+                ["Palanca:Database:BackupDirectory"] = BackupDirectory,
+                ["Palanca:Dashboard:Origin"] = Origin,
+                ["Palanca:DataProtection:KeysDirectory"] = Path.Combine(DataDirectory, "keys"),
+                ["Logging:LogLevel:Default"] = "Warning",
+                // Tests that expect a constraint violation would otherwise print its stack trace.
+                ["Logging:LogLevel:Microsoft.EntityFrameworkCore"] = "None",
+            });
+            configuration.AddInMemoryCollection(Settings);
+        });
+
+        builder.ConfigureTestServices(services =>
+        {
+            if (Time is not null)
+            {
+                services.AddSingleton<TimeProvider>(Time);
+            }
+
+            if (PeerAddress is not null)
+            {
+                services.AddSingleton<IStartupFilter>(new PeerAddressFilter(PeerAddress));
+            }
+
+            if (Logs is not null)
+            {
+                services.AddSingleton(Logs);
+            }
+        });
     }
 
     internal async Task WithDbAsync(Func<PalancaDbContext, Task> action)
@@ -69,6 +117,20 @@ public sealed class PalancaFactory : WebApplicationFactory<Program>
         await base.DisposeAsync();
         _ownedDirectory?.Dispose();
     }
+}
+
+/// <summary>Sets the connection's remote address before the app's own middleware runs.</summary>
+internal sealed class PeerAddressFilter(IPAddress address) : IStartupFilter
+{
+    public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>
+    {
+        app.Use((context, nextMiddleware) =>
+        {
+            context.Connection.RemoteIpAddress = address;
+            return nextMiddleware(context);
+        });
+        next(app);
+    };
 }
 
 public sealed class TempDirectory : IDisposable
