@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Palanca · HogarHero · Category standard sketch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#FFFFFF; --side:#F9FAFB; --ink:#111827; --muted:#6B7280; --line:#E5E7EB; --blue:#2563EB; --green:#16A34A; --amber:#B45309; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:1440px; height:900px; overflow:hidden; background:var(--bg); color:var(--ink); font:400 14px/20px Inter, sans-serif; }
+  .app { display:grid; grid-template-columns:248px 1fr; height:100%; }
+  aside { background:var(--side); border-right:1px solid var(--line); padding:20px 14px; display:flex; flex-direction:column; gap:4px; }
+  .logo { font:700 18px/1 Inter; padding:4px 10px 22px; display:flex; gap:10px; align-items:center; }
+  .logo i { width:24px; height:24px; border-radius:6px; background:var(--blue); display:block; }
+  .grp { font:600 11px/1 Inter; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding:16px 10px 8px; }
+  aside a { display:flex; justify-content:space-between; padding:8px 10px; border-radius:6px; color:var(--ink); text-decoration:none; font-weight:500; }
+  aside a.on { background:#E8EEFC; color:var(--blue); }
+  aside a small { color:var(--muted); font-weight:400; }
+  .foot { margin-top:auto; border-top:1px solid var(--line); padding-top:12px; }
+  main { padding:24px 36px; }
+  .crumbs { color:var(--muted); font-size:13px; margin-bottom:6px; }
+  .head { display:flex; align-items:center; gap:16px; margin-bottom:20px; }
+  h1 { font:600 24px/32px Inter; }
+  .head .btn { margin-left:auto; }
+  .btn { height:36px; padding:0 14px; border-radius:6px; border:0; background:var(--blue); color:#fff; font:500 14px/36px Inter; }
+  .bar { display:flex; gap:12px; margin-bottom:16px; }
+  input { width:340px; height:36px; border:1px solid #D1D5DB; border-radius:6px; padding:0 12px; font:400 14px Inter; }
+  .chip { height:36px; padding:0 12px; border:1px solid #D1D5DB; border-radius:6px; line-height:34px; color:var(--muted); }
+  table { width:100%; border-collapse:separate; border-spacing:0; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  th { text-align:left; background:var(--side); color:var(--muted); font:500 12px/1 Inter; padding:12px 16px; border-bottom:1px solid var(--line); }
+  td { padding:12px 16px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .key { font:500 14px/20px Inter; }
+  .desc { color:var(--muted); font-size:13px; }
+  .sw { width:36px; height:20px; border-radius:10px; background:#D1D5DB; position:relative; display:inline-block; vertical-align:middle; }
+  .sw::after { content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2); }
+  .sw.on { background:var(--green); }
+  .sw.on::after { left:18px; }
+  .lock { display:inline-block; margin-left:8px; padding:2px 8px; border-radius:10px; background:#FEF3C7; color:var(--amber); font:500 11px/16px Inter; }
+  .when { color:var(--muted); font-size:13px; }
+  .new { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--blue); margin-right:6px; vertical-align:middle; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="logo"><i></i>Palanca</div>
+    <div class="grp">Applications</div>
+    <a class="on" href="#">HogarHero <small>24</small></a>
+    <div class="grp">HogarHero</div>
+    <a href="#">Flags</a><a href="#">Environments</a><a href="#">SDK keys</a><a href="#">History</a>
+    <div class="foot"><a href="#">Passkeys</a><a href="#">Sign out</a></div>
+  </aside>
+  <main>
+    <div class="crumbs">Applications / HogarHero</div>
+    <div class="head"><h1>Flags</h1><button class="btn">Create flag</button></div>
+    <div class="bar"><input placeholder="Search flags"><span class="chip">All environments ▾</span></div>
+    <table>
+      <thead><tr><th>Flag</th><th>Staging</th><th>Production<span class="lock">Protected</span></th><th>Last changed</th></tr></thead>
+      <tbody>
+        <tr><td><div class="key">new-search-results</div><div class="desc">New search results page</div></td><td><span class="sw on"></span></td><td><span class="sw"></span></td><td class="when"><span class="new"></span>12 minutes ago by owner</td></tr>
+        <tr><td><div class="key">provider-onboarding-v2</div><div class="desc">Second version of provider onboarding</div></td><td><span class="sw on"></span></td><td><span class="sw"></span></td><td class="when"><span class="new"></span>55 minutes ago by claude-staging</td></tr>
+        <tr><td><div class="key">operator-denue-imports</div><div class="desc">Operators can start DENUE prospect imports</div></td><td><span class="sw on"></span></td><td><span class="sw"></span></td><td class="when"><span class="new"></span>2 hours ago by owner</td></tr>
+        <tr><td><div class="key">quote-pdf-export</div><div class="desc">Customers can export quotes as PDF</div></td><td><span class="sw on"></span></td><td><span class="sw on"></span></td><td class="when">yesterday by owner</td></tr>
+        <tr><td><div class="key">review-photos</div><div class="desc">Customers can attach photos to reviews</div></td><td><span class="sw on"></span></td><td><span class="sw"></span></td><td class="when">yesterday by owner</td></tr>
+        <tr><td><div class="key">preview-moderator-access</div><div class="desc">Moderators can open listings in preview</div></td><td><span class="sw on"></span></td><td><span class="sw on"></span></td><td class="when">12 days ago by owner</td></tr>
+        <tr><td><div class="key">booking-reminders-sms</div><div class="desc">Text reminder 24 hours before a booking</div></td><td><span class="sw"></span></td><td><span class="sw"></span></td><td class="when">15 days ago by owner</td></tr>
+        <tr><td><div class="key">chat-attachments</div><div class="desc">File attachments in customer chat</div></td><td><span class="sw on"></span></td><td><span class="sw"></span></td><td class="when">20 days ago by owner</td></tr>
+        <tr><td><div class="key">payout-weekly</div><div class="desc">Weekly payouts for providers</div></td><td><span class="sw on"></span></td><td><span class="sw on"></span></td><td class="when">21 days ago by owner</td></tr>
+        <tr><td><div class="key">map-view-results</div><div class="desc">Show search results on a map</div></td><td><span class="sw"></span></td><td><span class="sw"></span></td><td class="when">a month ago by owner</td></tr>
+      </tbody>
+    </table>
+  </main>
+</div>
+</body>
+</html>
