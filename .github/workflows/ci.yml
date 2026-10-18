@@ -59,6 +59,31 @@ jobs:
           --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
           --label "org.opencontainers.image.revision=$GITHUB_SHA"
           .
+      # AC-014: the published image runs as a non-root user and has no shell or package manager.
+      - name: Check the image is hardened
+        run: |
+          user="$(docker image inspect --format '{{.Config.User}}' "$IMAGE:sha-$GITHUB_SHA")"
+          echo "Image user: $user"
+          # USER may name a group after a colon; the user is what runs the app.
+          case "${user%%:*}" in
+            "" | 0 | root)
+              echo "::error::The image runs as root."
+              exit 1
+              ;;
+          esac
+          container="$(docker create "$IMAGE:sha-$GITHUB_SHA")"
+          docker export "$container" | tar -tf - > "$RUNNER_TEMP/image-files.txt"
+          docker rm "$container" > /dev/null
+          # A listing that failed would find no shell either; the app itself proves the listing is real.
+          if ! grep -qx 'app/Palanca.dll' "$RUNNER_TEMP/image-files.txt"; then
+            echo "::error::Could not list the image's files."
+            exit 1
+          fi
+          found="$(grep -E '^(usr/)?(local/)?s?bin/(sh|bash|dash|ash|zsh|ksh|mksh|fish|csh|tcsh|busybox|apt|apt-get|dpkg|rpm|yum|dnf|tdnf|microdnf|zypper|pacman|apk)$' "$RUNNER_TEMP/image-files.txt" || true)"
+          if [ -n "$found" ]; then
+            echo "::error::The image contains a shell or package manager: $found"
+            exit 1
+          fi
       - name: Scan image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:

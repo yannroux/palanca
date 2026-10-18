@@ -56,8 +56,16 @@ public sealed class SchemaTests(PalancaFactory factory) : IClassFixture<PalancaF
                 db.ChangeRecords.ExecuteUpdateAsync(setter => setter.SetProperty(r => r.Actor, "someone-else"), TestContext.Current.CancellationToken));
             var delete = await Assert.ThrowsAsync<SqliteException>(() => db.ChangeRecords.ExecuteDeleteAsync(TestContext.Current.CancellationToken));
 
+            // REPLACE deletes the old row without firing delete triggers, so it is refused on insert.
+            var replace = await Assert.ThrowsAsync<SqliteException>(() => db.Database.ExecuteSqlRawAsync("""
+                CREATE TEMP TABLE "Copy" AS SELECT * FROM "ChangeRecords";
+                UPDATE "Copy" SET "Actor" = 'someone-else';
+                INSERT OR REPLACE INTO "ChangeRecords" SELECT * FROM "Copy";
+                """, TestContext.Current.CancellationToken));
+
             Assert.Contains("append-only", update.Message, StringComparison.Ordinal);
             Assert.Contains("append-only", delete.Message, StringComparison.Ordinal);
+            Assert.Contains("append-only", replace.Message, StringComparison.Ordinal);
             Assert.Equal("owner@example.com", (await db.ChangeRecords.SingleAsync(TestContext.Current.CancellationToken)).Actor);
         });
     }

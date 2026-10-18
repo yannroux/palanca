@@ -58,7 +58,7 @@ In development:
   - restoring an archived flag that is on there asks first;
   - unprotecting the environment asks first.
 - **Retiring a flag:** a flag starts off everywhere unless it is created with initial values. Archiving it moves it off the board, with its history kept; restoring brings it back with its values, and only an archived flag can be deleted.
-- **Change records:** every change to applications, environments, flags and values is recorded with who made it.
+- **History:** every change to applications, environments, flags, values, SDK keys and the owner's passkeys is recorded, with when, where, and who made it: the owner in the dashboard, a host command, or, from Phase 2, a management token through the API. The History page lists the records newest first, 50 at a time, and filters them by application, environment, flag and source; a description change shows the old and the new text. Changes made through the API stand out with a solid plate and the token's name in bold. The database refuses any statement that edits, replaces or deletes a record.
 
 ## SDK keys and the evaluation API
 

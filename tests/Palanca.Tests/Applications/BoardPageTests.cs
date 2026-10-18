@@ -47,8 +47,10 @@ public sealed class BoardPageTests : IAsyncLifetime
     {
         var page = await _client.GetPageAsync("/apps/hogarhero");
         var before = await RecordCountAsync();
+        var sent = DateTime.UtcNow;
 
         using var response = await _client.PostFormAsync("/apps/hogarhero", page, "board", new() { ["Toggle"] = "new-search|staging|on" });
+        var answered = DateTime.UtcNow;
 
         Assert.Equal("/apps/hogarhero?flipped=new-search~staging", DashboardClient.RedirectPath(response));
         Assert.Equal("#flag-new-search", response.Headers.Location?.Fragment);
@@ -58,6 +60,7 @@ public sealed class BoardPageTests : IAsyncLifetime
         Assert.Equal((ChangeAction.FlagValueSet, ChangeSource.Dashboard, OwnerSetup.Email), (record.Action, record.Source, record.Actor));
         Assert.Equal(("hogarhero", "staging", "new-search", "off", "on"),
             (record.ApplicationKey, record.EnvironmentKey, record.FlagKey, record.OldValue, record.NewValue));
+        Assert.InRange(record.OccurredAt, sent, answered);
 
         var after = await _client.GetPageAsync(DashboardClient.RedirectPath(response)!);
         Assert.Contains("value=\"new-search|staging|off\" class=\"tile on flipped\"", after.Html, StringComparison.Ordinal);
@@ -86,11 +89,13 @@ public sealed class BoardPageTests : IAsyncLifetime
     public async Task TheDialogsConfirmationChangesAProtectedValue()
     {
         var page = await _client.GetPageAsync("/apps/hogarhero");
+        var before = await RecordCountAsync();
 
         using var response = await _client.PostFormAsync("/apps/hogarhero", page, "board", new() { ["Toggle"] = "new-search|production|on|confirmed" });
 
         Assert.Equal("/apps/hogarhero?flipped=new-search~production", DashboardClient.RedirectPath(response));
         Assert.True(await ValueAsync("new-search", "production"));
+        Assert.Equal(before + 1, await RecordCountAsync());
     }
 
     [Fact]
