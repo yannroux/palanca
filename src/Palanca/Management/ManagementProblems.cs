@@ -10,6 +10,22 @@ internal static class ManagementProblems
     public static IResult TooManyFailures() =>
         Results.Problem(statusCode: StatusCodes.Status429TooManyRequests, title: "Too many failed attempts from this address. Try again in a minute.");
 
+    public static IResult ReadOnly() =>
+        Results.Problem(statusCode: StatusCodes.Status403Forbidden, title: "This token is read-only.");
+
+    public static IResult TooManyWrites(int writesPerMinute) =>
+        Results.Problem(statusCode: StatusCodes.Status429TooManyRequests, title: $"This token has made its {writesPerMinute} writes for the last minute. Retry after the time in Retry-After.");
+
+    /// <summary>The problem for a command that did not succeed.</summary>
+    public static IResult From(CommandResult result) => Results.Problem(
+        statusCode: result.Status switch
+        {
+            CommandStatus.NotFound => StatusCodes.Status404NotFound,
+            CommandStatus.Conflict or CommandStatus.ConfirmationRequired => StatusCodes.Status409Conflict,
+            _ => StatusCodes.Status400BadRequest,
+        },
+        title: result.Message);
+
     public static IResult OutOfScope() =>
         Results.Problem(statusCode: StatusCodes.Status403Forbidden, title: "This token cannot reach that application.");
 

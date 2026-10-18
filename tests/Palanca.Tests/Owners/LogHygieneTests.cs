@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
@@ -88,6 +89,11 @@ public sealed class LogHygieneTests
             api.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", managementToken);
             (await api.GetAsync("/api/manage/v1/applications/hogarhero/flags", TestContext.Current.CancellationToken)).Dispose();
             (await api.GetAsync("/api/manage/v1/applications/hogarhero/history", TestContext.Current.CancellationToken)).Dispose();
+            using var flagCreated = await api.PostAsJsonAsync(
+                "/api/manage/v1/applications/hogarhero/flags",
+                new { key = "agent-flag", description = "Made by an agent", values = new { staging = true } },
+                TestContext.Current.CancellationToken);
+            Assert.Equal(System.Net.HttpStatusCode.Created, flagCreated.StatusCode);
         }
 
         secrets.Add(client.Cookie("__Host-Palanca.Session")!.Value);
