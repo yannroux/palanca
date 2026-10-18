@@ -60,6 +60,19 @@ public sealed class DashboardJourneyTests : IAsyncLifetime
 
         var values = await _host.Factory.WithDbAsync(db => db.FlagValues.Where(v => v.Enabled).CountAsync(TestContext.Current.CancellationToken));
         Assert.Equal(2, values);
+
+        // A staging key for the application, shown once.
+        await page.GetByRole(AriaRole.Link, new() { Name = "SDK keys" }).ClickAsync();
+        var stagingKeys = page.Locator("section", new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = "Staging", Exact = true }) });
+        await stagingKeys.GetByLabel("New key name").FillAsync("hogarhero-web");
+        await stagingKeys.GetByRole(AriaRole.Button, new() { Name = "Create key" }).ClickAsync();
+        var secret = page.Locator("code.secret");
+        await Assertions.Expect(secret).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("^palanca_sdk_[A-Za-z0-9_-]{43}$"));
+        await BrowserHost.ScreenshotAsync(page, "keys-created");
+        await page.GotoAsync("/apps/hogarhero/keys");
+        await Assertions.Expect(page.Locator("code.secret")).ToHaveCountAsync(0);
+        await Assertions.Expect(stagingKeys.Locator("tbody tr")).ToHaveCountAsync(1);
+
         Assert.Empty(sockets);
 
         await CaptureReviewScreensAsync(page);
@@ -146,6 +159,7 @@ public sealed class DashboardJourneyTests : IAsyncLifetime
         {
             ("/", "home"),
             ("/apps/hogarhero/settings", "settings"),
+            ("/apps/hogarhero/keys", "keys"),
             ("/apps/hogarhero/flags/new", "new-flag"),
             ("/apps/hogarhero/flags/quote-pdf-export", "flag"),
             ("/apps/hogarhero/confirm?flag=map-view-results&env=production&value=on", "confirm-page"),

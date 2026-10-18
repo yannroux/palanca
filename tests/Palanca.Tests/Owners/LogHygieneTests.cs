@@ -1,6 +1,11 @@
 using System.Collections.Concurrent;
+using System.Net.Http.Headers;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Palanca.Applications;
+using Palanca.Data;
 
 namespace Palanca.Tests.Owners;
 
@@ -41,6 +46,27 @@ public sealed class LogHygieneTests
 
         (await client.SignInAsync(authenticator)).Dispose();
         (await client.AddPasskeyAsync(authenticator, "Phone")).Dispose();
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var applications = scope.ServiceProvider.GetRequiredService<ApplicationCommands>();
+            var owner = new ChangeActor(ChangeSource.Dashboard, OwnerSetup.Email);
+            await applications.CreateAsync("hogarhero", "HogarHero", owner, TestContext.Current.CancellationToken);
+            await applications.CreateEnvironmentAsync("hogarhero", "staging", "Staging", false, owner, TestContext.Current.CancellationToken);
+        }
+
+        var keysPage = await client.GetPageAsync("/apps/hogarhero/keys");
+        using (var created = await client.PostFormAsync("/apps/hogarhero/keys", keysPage, "create-staging", new() { ["EnvironmentKey"] = "staging", ["KeyName"] = "web" }))
+        {
+            var shownPage = await client.GetPageAsync(DashboardClient.RedirectPath(created)!);
+            var sdkKey = Regex.Match(shownPage.Html, "palanca_sdk_[A-Za-z0-9_-]{43}").Value;
+            Assert.NotEmpty(sdkKey);
+            secrets.Add(sdkKey);
+            using var api = factory.CreateClient();
+            api.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", sdkKey);
+            (await api.GetAsync("/api/v1/flags", TestContext.Current.CancellationToken)).Dispose();
+        }
+
         secrets.Add(client.Cookie("__Host-Palanca.Session")!.Value);
         secrets.Add(client.Cookie("__Host-Palanca.Antiforgery")!.Value);
 

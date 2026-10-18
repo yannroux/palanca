@@ -1,0 +1,217 @@
+@page "/apps/{AppKey}/keys"
+@using Palanca.Applications
+@using Palanca.SdkKeys
+@inject BoardQueries Queries
+@inject SdkKeyCommands Keys
+@inject NewKeyHandoff Handoff
+@inject NavigationManager Navigation
+@inject TimeProvider Time
+
+<PageTitle>SDK keys · Palanca</PageTitle>
+<SectionContent SectionName="@MainLayout.BoardContext"><AppSwitcher Current="@AppKey" /></SectionContent>
+
+@if (environments is null)
+{
+    <div class="empty">
+        <p class="empty-title">No such application</p>
+        <p>It does not exist or has been archived. <a href="/">See all applications</a>.</p>
+    </div>
+    return;
+}
+
+<div class="page-head">
+    <div class="page-title">
+        <h1>SDK keys</h1>
+        <p class="page-meta"><a href="/apps/@AppKey">Back to the board</a></p>
+    </div>
+</div>
+
+<p class="page-intro">
+    An application reads one environment's flags with that environment's SDK key. Give each consuming application its own key. To rotate one, add a new key,
+    deploy it, then revoke the old one.
+</p>
+
+@if (created is not null)
+{
+    <section class="secret-once" aria-labelledby="secret-title">
+        <h2 id="secret-title">Copy the new key now</h2>
+        <p>@created.Name for @created.EnvironmentName. It is shown only this once: Palanca keeps only its hash.</p>
+        <code class="secret">@created.Key</code>
+        <p class="field-hint">Store it as the consuming application's secret, never in code or configuration files you commit.</p>
+    </section>
+}
+
+@if (message is not null)
+{
+    <Notice Kind="kind">@message</Notice>
+}
+
+@if (environments.Count == 0)
+{
+    <div class="empty">
+        <p class="empty-title">No environments yet</p>
+        <p>Add environments in <a href="/apps/@AppKey/settings">Settings</a>; each one gets its own keys.</p>
+    </div>
+}
+
+@foreach (var group in environments)
+{
+    var environment = group.Environment;
+    <section class="form-section key-section" aria-labelledby="keys-@environment.Key">
+        <h2 id="keys-@environment.Key">
+            @environment.Name
+            @if (environment.IsProtected)
+            {
+                <span class="plate">Protected</span>
+            }
+        </h2>
+        @if (group.Keys.Count == 0)
+        {
+            <p class="empty-inline">No keys yet.</p>
+        }
+        else
+        {
+            <table class="ledger">
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Key starts with</th>
+                        <th scope="col">Created</th>
+                        <th scope="col">Last used</th>
+                        <th scope="col"><span class="visually-hidden">Status and actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var key in group.Keys)
+                    {
+                        var popover = $"revoke_{key.Id}";
+                        <tr class="@(key.RevokedAt is null ? null : "row-revoked")">
+                            <td class="cell-name">@key.Name</td>
+                            <td data-label="Key starts with"><code>@key.Prefix…</code></td>
+                            <td class="cell-time" data-label="Created">@Display.Timestamp(key.CreatedAt)</td>
+                            <td class="cell-time" data-label="Last used">@(key.LastUsedAt is { } used ? Display.Ago(used, now) : "Never")</td>
+                            <td class="cell-actions">
+                                @if (key.RevokedAt is { } revokedAt)
+                                {
+                                    <span class="cell-status">Revoked @Display.Ago(revokedAt, now)</span>
+                                }
+                                else
+                                {
+                                    <form method="post" @formname="@($"revoke-{key.Id}")" @onsubmit="RevokeAsync" class="row-actions">
+                                        <span class="cell-status">Active</span>
+                                        <AntiforgeryToken />
+                                        <input type="hidden" name="KeyId" value="@key.Id" />
+                                        <button type="button" class="button button-danger" popovertarget="@popover">Revoke</button>
+                                        <div popover id="@popover" class="confirm" role="dialog" aria-labelledby="@($"{popover}-title")">
+                                            <p id="@($"{popover}-title")" class="confirm-title">Revoke @key.Name?</p>
+                                            <p>Applications using it get 401 from their next request and keep the values they last read.</p>
+                                            <div class="confirm-actions">
+                                                <button type="submit" class="button button-danger-solid">Revoke key</button>
+                                                <button type="button" popovertarget="@popover" popovertargetaction="hide" class="button button-quiet">Keep it</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        <form method="post" @formname="@($"create-{environment.Key}")" @onsubmit="CreateAsync" class="field-row key-create">
+            <AntiforgeryToken />
+            <input type="hidden" name="EnvironmentKey" value="@environment.Key" />
+            <div class="field">
+                <label for="name-@environment.Key">New key name</label>
+                <input id="name-@environment.Key" name="KeyName" required maxlength="100" autocomplete="off" placeholder="hogarhero-web" />
+            </div>
+            <button type="submit" class="button">Create key</button>
+        </form>
+    </section>
+}
+
+@code {
+    private List<EnvironmentKeys>? environments;
+    private NewKey? created;
+    private DateTime now;
+    private string? message;
+    private NoticeKind kind;
+
+    [Parameter]
+    public string AppKey { get; set; } = "";
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromQuery(Name = "status")]
+    private string? Status { get; set; }
+
+    /// <summary>The one-time handle of a key just created; never the key itself.</summary>
+    [SupplyParameterFromQuery(Name = "shown")]
+    private string? Shown { get; set; }
+
+    // Each environment's create form and each key's revoke form has its own name; these are bound from whichever was posted.
+    [SupplyParameterFromForm]
+    private string? EnvironmentKey { get; set; }
+
+    [SupplyParameterFromForm]
+    private string? KeyName { get; set; }
+
+    [SupplyParameterFromForm]
+    private int? KeyId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // A response may carry a new key, so no copy of any of these pages is kept by the browser or a proxy.
+        HttpContext.Response.Headers.CacheControl = "no-store";
+        now = Time.GetUtcNow().UtcDateTime;
+        await LoadAsync();
+        if (environments is null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        (message, kind) = Status == "revoked"
+            ? ("Key revoked. Requests with it fail from now on.", NoticeKind.Success)
+            : (null, NoticeKind.Info);
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            created = Handoff.Take(Shown, AppKey);
+        }
+    }
+
+    private async Task LoadAsync() => environments = await Queries.KeysAsync(AppKey, HttpContext.RequestAborted);
+
+    private async Task CreateAsync()
+    {
+        var (result, key, environmentName) = await Keys.CreateAsync(AppKey, EnvironmentKey ?? "", KeyName, DashboardActor.Of(HttpContext), HttpContext.RequestAborted);
+        if (!result.Succeeded)
+        {
+            Fail(result.Message!);
+            return;
+        }
+
+        // Redirect, so a reload cannot create a second key. The URL carries a one-time handle, never the key.
+        var handle = Handoff.Hold(new NewKey(AppKey, Text.Clean(KeyName, SdkKeyCommands.NameMaxLength)!, environmentName!, key!));
+        Navigation.NavigateTo($"/apps/{AppKey}/keys?shown={handle}");
+    }
+
+    private async Task RevokeAsync()
+    {
+        var result = await Keys.RevokeAsync(AppKey, KeyId ?? 0, DashboardActor.Of(HttpContext), HttpContext.RequestAborted);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo($"/apps/{AppKey}/keys?status=revoked");
+            return;
+        }
+
+        Fail(result.Message!);
+    }
+
+    private void Fail(string error)
+    {
+        HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+        (message, kind) = (error, NoticeKind.Error);
+    }
+}

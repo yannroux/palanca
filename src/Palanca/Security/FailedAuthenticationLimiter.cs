@@ -17,7 +17,8 @@ internal sealed class FailedAuthenticationOptions
 /// <summary>
 /// Counts failed authentication attempts per client address (FLG-032). Once the limit is reached within one
 /// minute, further attempts from that address are refused until the oldest failure is a minute old.
-/// An IPv6 client is counted by its /64 network, which a single host controls.
+/// A public IPv6 client is counted by its /64 network, which a single host controls; private and link-local IPv6
+/// addresses, such as containers on a Docker network, are counted one by one.
 /// </summary>
 internal sealed class FailedAuthenticationLimiter(TimeProvider timeProvider, IOptions<FailedAuthenticationOptions> options)
 {
@@ -114,7 +115,8 @@ internal sealed class FailedAuthenticationLimiter(TimeProvider timeProvider, IOp
             return address.MapToIPv4().ToString();
         }
 
-        if (address.AddressFamily != AddressFamily.InterNetworkV6)
+        if (address.AddressFamily != AddressFamily.InterNetworkV6
+            || address.IsIPv6UniqueLocal || address.IsIPv6LinkLocal || address.IsIPv6SiteLocal)
         {
             return address.ToString();
         }

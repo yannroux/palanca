@@ -40,7 +40,7 @@
 
 <section class="form-section" aria-labelledby="environments-title">
     <h2 id="environments-title">Environments</h2>
-    <p>Each environment is a column of the board, in this order. Toggling a flag in a protected environment asks for confirmation.</p>
+    <p>Each environment is a column of the board, in this order. Toggling a flag in a protected environment asks for confirmation. Applications read an environment's flags with its <a href="/apps/@AppKey/keys">SDK keys</a>.</p>
     @if (application.Environments.Count == 0)
     {
         <p class="empty-inline">No environments yet. Add staging and production below.</p>

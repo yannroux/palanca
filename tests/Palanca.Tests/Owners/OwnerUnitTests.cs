@@ -123,6 +123,21 @@ public sealed class OwnerUnitTests
     }
 
     [Fact]
+    public void PrivateIPv6AddressesAreCountedOneByOne()
+    {
+        // Containers on an IPv6 Docker network share one /64; one misbehaving container must not limit the others.
+        var limiter = Limiter(new FakeTimeProvider());
+
+        for (var failure = 0; failure < 10; failure++)
+        {
+            limiter.RecordFailure(IPAddress.Parse("fd00:dead:beef::2"));
+        }
+
+        Assert.True(limiter.IsLimited(IPAddress.Parse("fd00:dead:beef::2")));
+        Assert.False(limiter.IsLimited(IPAddress.Parse("fd00:dead:beef::3")));
+    }
+
+    [Fact]
     public void AddressesThatNeverReturnAreForgotten()
     {
         var time = new FakeTimeProvider();

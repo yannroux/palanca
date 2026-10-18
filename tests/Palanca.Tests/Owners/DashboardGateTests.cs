@@ -11,6 +11,7 @@ public sealed class DashboardGateTests(PalancaFactory factory) : IClassFixture<P
     [InlineData("/passkeys")]
     [InlineData("/apps/hogarhero")]
     [InlineData("/apps/hogarhero/settings")]
+    [InlineData("/apps/hogarhero/keys")]
     [InlineData("/apps/hogarhero/flags/new")]
     [InlineData("/apps/hogarhero/flags/new-search")]
     [InlineData("/apps/hogarhero/confirm?flag=new-search&env=production&value=on")]
@@ -37,6 +38,19 @@ public sealed class DashboardGateTests(PalancaFactory factory) : IClassFixture<P
         using var response = await client.Http.GetAsync(path, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AnSdkKeyOpensNoDashboardRoute()
+    {
+        using var client = new DashboardClient(factory);
+        client.Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+            "Bearer", "palanca_sdk_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+
+        using var response = await client.Http.GetAsync("/", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.StartsWith("/sign-in", DashboardClient.RedirectPath(response), StringComparison.Ordinal);
     }
 
     [Fact]
