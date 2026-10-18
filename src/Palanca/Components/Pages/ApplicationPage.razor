@@ -1,0 +1,406 @@
+@page "/apps/{AppKey}"
+@using Palanca.Applications
+@using Palanca.Data
+@using Palanca.Flags
+@inject BoardQueries Queries
+@inject FlagValueWriter Writer
+@inject FlagCommands Flags
+@inject NavigationManager Navigation
+@inject TimeProvider Time
+
+@if (board is null)
+{
+    <PageTitle>Not found · Palanca</PageTitle>
+    <div class="empty">
+        <p class="empty-title">No such application</p>
+        <p>It does not exist or has been archived. <a href="/">See all applications</a>.</p>
+    </div>
+    return;
+}
+
+<PageTitle>@board.Application.Name · Palanca</PageTitle>
+<SectionContent SectionName="@MainLayout.BoardContext"><AppSwitcher Current="@AppKey" /></SectionContent>
+
+<div class="board-page">
+    <div class="board-main">
+        <div class="page-head">
+            <div class="page-title">
+                <h1>@board.Application.Name</h1>
+                <p class="page-meta">@MetaLine</p>
+            </div>
+            <div class="page-tools">
+                @if (board.Flags.Count > 0)
+                {
+                    <form method="get" action="/apps/@AppKey" class="filter" role="search">
+                        <label for="filter" class="visually-hidden">Filter flags by key or description</label>
+                        <input id="filter" name="q" type="search" value="@Q" placeholder="Filter by key or description" autocomplete="off" />
+                        <button type="submit" class="button button-quiet">Filter</button>
+                    </form>
+                }
+                <a class="button" href="/apps/@AppKey/flags/new">New flag</a>
+                <a class="link-quiet" href="/apps/@AppKey/settings">Settings</a>
+            </div>
+        </div>
+
+        @if (message is not null)
+        {
+            <Notice Kind="kind">@message</Notice>
+        }
+
+        @if (board.Application.Environments.Count == 0)
+        {
+            <div class="empty">
+                <p class="empty-title">No environments yet</p>
+                <p>Add environments such as staging and production in <a href="/apps/@AppKey/settings">Settings</a>. Each one becomes a column of the board.</p>
+            </div>
+        }
+        else if (board.Flags.Count == 0 && board.ArchivedFlags.Count == 0)
+        {
+            <div class="empty">
+                <p class="empty-title">No flags yet</p>
+                <p>Create the first flag, or let an agent create one through the management API. Every flag starts off in every environment.</p>
+            </div>
+        }
+        else
+        {
+            <form method="post" action="@FormAction" @formname="board" @onsubmit="SubmitAsync">
+                <AntiforgeryToken />
+                @if (rows.Count == 0 && board.Flags.Count > 0)
+                {
+                    <div class="empty">
+                        <p class="empty-title">No flag matches “@Q”</p>
+                        <p><a href="/apps/@AppKey">Show every flag</a>.</p>
+                    </div>
+                }
+                else if (rows.Count > 0)
+                {
+                    <table class="board">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="board-flag-head">Flag</th>
+                                @foreach (var environment in board.Application.Environments)
+                                {
+                                    <th scope="col" class="@(environment.IsProtected ? "env-protected" : null)">
+                                        @environment.Name
+                                        @if (environment.IsProtected)
+                                        {
+                                            <span class="plate">Protected</span>
+                                        }
+                                    </th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in rows)
+                            {
+                                <tr id="flag-@row.Key">
+                                    <th scope="row" class="board-flag">
+                                        <a class="flag-key" href="/apps/@AppKey/flags/@row.Key">@row.Key</a>
+                                        <span class="flag-description">@row.Description</span>
+                                    </th>
+                                    @foreach (var cell in row.Cells)
+                                    {
+                                        var recent = Display.IsRecent(cell.UpdatedAt, now);
+                                        var next = !cell.Enabled;
+                                        var label = $"{row.Key} is {(cell.Enabled ? "on" : "off")} in {cell.Environment.Name}. Turn it {(next ? "on" : "off")}.";
+                                        var tileClass = $"tile{(cell.Enabled ? " on" : null)}{(Flipped == $"{row.Key}~{cell.Environment.Key}" ? " flipped" : null)}";
+                                        <td class="cell@(recent ? " recent" : null)">
+                                            @* At phone width the header row is hidden, so each cell names its environment. *@
+                                            <span class="cell-label" aria-hidden="true">
+                                                @cell.Environment.Name
+                                                @if (cell.Environment.IsProtected)
+                                                {
+                                                    <span class="plate">Protected</span>
+                                                }
+                                            </span>
+                                            @if (cell.Environment.IsProtected)
+                                            {
+                                                // Keys never contain "_", so these ids cannot collide.
+                                                var popover = $"toggle_{row.Key}_{cell.Environment.Key}";
+                                                <button type="button" class="@tileClass" popovertarget="@popover" aria-label="@label" data-was="@WasValue(row.Key, cell)">@Display.OnOff(cell.Enabled)</button>
+                                                <div popover id="@popover" class="confirm" role="dialog" aria-labelledby="@($"{popover}-title")">
+                                                    <p id="@($"{popover}-title")" class="confirm-title">Turn <span class="key-literal">@row.Key</span> @(next ? "on" : "off") in @cell.Environment.Name?</p>
+                                                    <dl class="confirm-facts">
+                                                        <div><dt>Application</dt><dd>@board.Application.Name</dd></div>
+                                                        <div><dt>Environment</dt><dd>@cell.Environment.Name <span class="plate">Protected</span></dd></div>
+                                                        <div><dt>Flag</dt><dd class="key-literal">@row.Key</dd></div>
+                                                        <div><dt>New value</dt><dd><span class="tile@(next ? " on" : null)">@Display.OnOff(next)</span></dd></div>
+                                                    </dl>
+                                                    <p>Applications read the new value within about 35 seconds.</p>
+                                                    <div class="confirm-actions">
+                                                        <button type="submit" name="Toggle" value="@ToggleValue(row.Key, cell.Environment.Key, next, confirmed: true)" class="button @(next ? "button-signal" : "button-danger-solid")">
+                                                            Turn @(next ? "on" : "off") in @cell.Environment.Name
+                                                        </button>
+                                                        <button type="button" popovertarget="@popover" popovertargetaction="hide" class="button button-quiet">Cancel</button>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <button type="submit" name="Toggle" value="@ToggleValue(row.Key, cell.Environment.Key, next, confirmed: false)" class="@tileClass" aria-label="@label" data-was="@WasValue(row.Key, cell)">@Display.OnOff(cell.Enabled)</button>
+                                            }
+                                            <span class="cell-when">
+                                                @if (cell.UpdatedAt is { } updatedAt)
+                                                {
+                                                    <time datetime="@updatedAt.ToString("O")" title="@Display.Timestamp(updatedAt)">@Display.Ago(updatedAt, now)</time>@(" · " + Display.Author(cell.UpdatedBy!, ownerEmail))
+                                                }
+                                                else
+                                                {
+                                                    @("created " + Display.Ago(row.CreatedAt, now))
+                                                }
+                                            </span>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+
+                @if (board.ArchivedFlags.Count > 0)
+                {
+                    <details class="archived" open="@(Status is "deleted" or "archived" ? true : null)">
+                        <summary><Icon Name="chevron-down" />Archived flags <span class="archived-count">@board.ArchivedFlags.Count</span></summary>
+                        <p class="archived-note">Archived flags are left out of every API response. Their history stays.</p>
+                        <table class="board board-archived">
+                            <tbody>
+                                @foreach (var flag in board.ArchivedFlags)
+                                {
+                                    var popover = $"delete_{flag.Key}";
+                                    var restorePopover = $"restore_{flag.Key}";
+                                    var servedAgain = ProtectedOn(flag);
+                                    <tr>
+                                        <th scope="row" class="board-flag">
+                                            <a class="flag-key" href="/apps/@AppKey/flags/@flag.Key">@flag.Key</a>
+                                            <span class="flag-description">@flag.Description</span>
+                                        </th>
+                                        <td class="cell-when">Archived @Display.Ago(flag.ArchivedAt!.Value, now)</td>
+                                        <td class="cell-actions">
+                                            <div class="row-actions">
+                                                @if (servedAgain.Count == 0)
+                                                {
+                                                    <button type="submit" name="FlagAction" value="restore|@flag.Key" class="button button-quiet">Restore</button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="button" class="button button-quiet" popovertarget="@restorePopover">Restore</button>
+                                                }
+                                                <button type="button" class="button button-danger" popovertarget="@popover">Delete</button>
+                                            </div>
+                                            @if (servedAgain.Count > 0)
+                                            {
+                                                <div popover id="@restorePopover" class="confirm" role="dialog" aria-labelledby="@($"{restorePopover}-title")">
+                                                    <p id="@($"{restorePopover}-title")" class="confirm-title">Restore <span class="key-literal">@flag.Key</span>?</p>
+                                                    <p>It is on in @string.Join(" and ", servedAgain), which is protected. Applications there read it again within about 35 seconds.</p>
+                                                    <div class="confirm-actions">
+                                                        <button type="submit" name="FlagAction" value="restore|@flag.Key|confirmed" class="button button-signal">Restore flag</button>
+                                                        <button type="button" popovertarget="@restorePopover" popovertargetaction="hide" class="button button-quiet">Keep it archived</button>
+                                                    </div>
+                                                </div>
+                                            }
+                                            <div popover id="@popover" class="confirm" role="dialog" aria-labelledby="@($"{popover}-title")">
+                                                <p id="@($"{popover}-title")" class="confirm-title">Delete @flag.Key for good?</p>
+                                                <p>Its values are deleted. Its change records stay in the history.</p>
+                                                <div class="confirm-actions">
+                                                    <button type="submit" name="FlagAction" value="delete|@flag.Key" class="button button-danger-solid">Delete flag</button>
+                                                    <button type="button" popovertarget="@popover" popovertargetaction="hide" class="button button-quiet">Keep it</button>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </details>
+                }
+            </form>
+        }
+    </div>
+
+    <aside class="flips" aria-labelledby="flips-title">
+        <h2 id="flips-title">Latest flips</h2>
+        @if (board.LatestFlips.Count == 0)
+        {
+            <p class="flips-empty">No value has changed yet.</p>
+        }
+        else
+        {
+            <ol class="flips-list">
+                @foreach (var flip in board.LatestFlips)
+                {
+                    <li class="flip@(flip.Source == ChangeSource.Api ? " flip-agent" : null)">
+                        <time class="flip-time" datetime="@flip.OccurredAt.ToString("O")" title="@Display.Timestamp(flip.OccurredAt)">@Display.Clock(flip.OccurredAt, now)</time>
+                        <span class="flip-key">@flip.FlagKey</span>
+                        <span class="flip-detail">@flip.EnvironmentName · @Display.Author(flip.Source, flip.Actor)</span>
+                        <span class="tile tile-small@(flip.Enabled ? " on" : null)">@Display.OnOff(flip.Enabled)</span>
+                    </li>
+                }
+            </ol>
+        }
+    </aside>
+</div>
+
+@code {
+    private Board? board;
+    private List<FlagRow> rows = [];
+    private DateTime now;
+    private string? ownerEmail;
+    private string? message;
+    private NoticeKind kind;
+
+    [Parameter]
+    public string AppKey { get; set; } = "";
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromQuery(Name = "q")]
+    private string? Q { get; set; }
+
+    [SupplyParameterFromQuery(Name = "flipped")]
+    private string? Flipped { get; set; }
+
+    [SupplyParameterFromQuery(Name = "status")]
+    private string? Status { get; set; }
+
+    /// <summary>A tile's button: <c>flag|environment|on</c>, with <c>|confirmed</c> from a protected environment's confirmation.</summary>
+    [SupplyParameterFromForm(FormName = "board")]
+    private string? Toggle { get; set; }
+
+    /// <summary>An archived flag's button: <c>restore|flag</c> or <c>delete|flag</c>.</summary>
+    [SupplyParameterFromForm(FormName = "board")]
+    private string? FlagAction { get; set; }
+
+    // Revisions are the evaluation API's ETags, so they show when an environment last changed for consumers.
+    private string MetaLine => string.Join(" · ",
+        [Count(board!.Flags.Count, "flag"), .. board.Application.Environments.Select(e => $"{e.Name} rev {e.Revision}")]);
+
+    private string FormAction => $"/apps/{AppKey}{(string.IsNullOrEmpty(Q) ? null : $"?q={Uri.EscapeDataString(Q)}")}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        board = await Queries.BoardAsync(AppKey, HttpContext.RequestAborted);
+        if (board is null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        now = Time.GetUtcNow().UtcDateTime;
+        ownerEmail = HttpContext.User.Identity?.Name;
+        var filter = Q?.Trim();
+        rows = string.IsNullOrEmpty(filter)
+            ? [.. board.Flags]
+            : [.. board.Flags.Where(f => f.Key.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                || f.Description.Contains(filter, StringComparison.OrdinalIgnoreCase))];
+        (message, kind) = Status switch
+        {
+            "created" => ("Flag created.", NoticeKind.Success),
+            "restored" => ("Flag restored. It is back in API responses, with the values it had.", NoticeKind.Success),
+            "deleted" => ("Flag deleted.", NoticeKind.Success),
+            "archived" => ("Flag archived. API responses leave it out from now on.", NoticeKind.Success),
+            _ => (null, NoticeKind.Info),
+        };
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (board is null)
+        {
+            return;
+        }
+
+        if (Toggle is not null)
+        {
+            await ToggleAsync(Toggle.Split('|'));
+        }
+        else if (FlagAction?.Split('|') is [var action, var flagKey, ..] parts && parts.Length <= 3)
+        {
+            var actor = DashboardActor.Of(HttpContext);
+            var confirmed = parts is [_, _, "confirmed"];
+            var result = action switch
+            {
+                "restore" => await Flags.RestoreAsync(AppKey, flagKey, actor, confirmed, HttpContext.RequestAborted),
+                "delete" => await Flags.DeleteAsync(AppKey, flagKey, actor, HttpContext.RequestAborted),
+                _ => CommandResult.Invalid("Unknown action."),
+            };
+            if (result.Succeeded)
+            {
+                Navigation.NavigateTo(BoardUrl($"status={(action == "restore" ? "restored" : "deleted")}", anchor: action == "restore" ? flagKey : null));
+                return;
+            }
+
+            Fail(result.Message!);
+        }
+    }
+
+    private async Task ToggleAsync(string[] parts)
+    {
+        if (parts is not ([_, _, "on" or "off"] or [_, _, "on" or "off", "confirmed"]))
+        {
+            Fail("That change could not be read. Try again.");
+            return;
+        }
+
+        var (flagKey, environmentKey, enabled) = (parts[0], parts[1], parts[2] == "on");
+        var confirmed = parts.Length == 4;
+        var environment = board!.Application.Environments.FirstOrDefault(e => e.Key == environmentKey);
+        if (environment is { IsProtected: true } && !confirmed)
+        {
+            // A protected environment always confirms (FLG-014); without the dialog, the confirmation is a page.
+            Navigation.NavigateTo($"/apps/{AppKey}/confirm?flag={Uri.EscapeDataString(flagKey)}&env={Uri.EscapeDataString(environmentKey)}&value={parts[2]}");
+            return;
+        }
+
+        var result = await Writer.SetAsync(AppKey, flagKey, environmentKey, enabled, DashboardActor.Of(HttpContext), confirmed, HttpContext.RequestAborted);
+        if (result.Outcome == SetFlagValueOutcome.NotFound)
+        {
+            Fail("That flag or environment no longer exists.");
+            return;
+        }
+
+        if (result.Outcome == SetFlagValueOutcome.ConfirmationRequired)
+        {
+            // The environment became protected after the board was read.
+            Navigation.NavigateTo($"/apps/{AppKey}/confirm?flag={Uri.EscapeDataString(flagKey)}&env={Uri.EscapeDataString(environmentKey)}&value={parts[2]}");
+            return;
+        }
+
+        Navigation.NavigateTo(BoardUrl(result.Outcome == SetFlagValueOutcome.Changed ? $"flipped={flagKey}~{environmentKey}" : null, anchor: flagKey));
+    }
+
+    private string BoardUrl(string? query, string? anchor)
+    {
+        var parameters = new List<string>();
+        if (!string.IsNullOrEmpty(Q))
+        {
+            parameters.Add($"q={Uri.EscapeDataString(Q)}");
+        }
+
+        if (query is not null)
+        {
+            parameters.Add(query);
+        }
+
+        return $"/apps/{AppKey}{(parameters.Count == 0 ? null : "?" + string.Join('&', parameters))}{(anchor is null ? null : $"#flag-{anchor}")}";
+    }
+
+    private void Fail(string error)
+    {
+        HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+        (message, kind) = (error, NoticeKind.Error);
+    }
+
+    // The protected environments where an archived flag is on, which restoring it would serve again.
+    private static List<string> ProtectedOn(FlagRow flag) =>
+        [.. flag.Cells.Where(c => c.Enabled && c.Environment.IsProtected).Select(c => c.Environment.Name)];
+
+    // The value the flipped tile showed before, which its falling flap still carries.
+    private string? WasValue(string flagKey, FlagCell cell) =>
+        Flipped == $"{flagKey}~{cell.Environment.Key}" ? Display.OnOff(!cell.Enabled) : null;
+
+    private static string ToggleValue(string flagKey, string environmentKey, bool enabled, bool confirmed) =>
+        $"{flagKey}|{environmentKey}|{(enabled ? "on" : "off")}{(confirmed ? "|confirmed" : null)}";
+
+    private static string Count(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
+}

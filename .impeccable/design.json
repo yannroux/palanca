@@ -1,0 +1,576 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-18T02:04:40+00:00",
+  "title": "Design System: Palanca",
+  "extensions": {
+    "colorMeta": {
+      "ground": {
+        "role": "neutral",
+        "displayName": "Concourse Grey",
+        "canonical": "#EDEFEE",
+        "tonalRamp": [
+          "oklch(15% 0.003 165.1)",
+          "oklch(26% 0.003 165.1)",
+          "oklch(38% 0.003 165.1)",
+          "oklch(50% 0.003 165.1)",
+          "oklch(62% 0.003 165.1)",
+          "oklch(73% 0.003 165.1)",
+          "oklch(84% 0.003 165.1)",
+          "oklch(95% 0.003 165.1)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Ticket White",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "oklch(15% 0.000 89.9)",
+          "oklch(26% 0.000 89.9)",
+          "oklch(38% 0.000 89.9)",
+          "oklch(50% 0.000 89.9)",
+          "oklch(62% 0.000 89.9)",
+          "oklch(73% 0.000 89.9)",
+          "oklch(84% 0.000 89.9)",
+          "oklch(95% 0.000 89.9)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Platform Rule",
+        "canonical": "#D3D6D5",
+        "tonalRamp": [
+          "oklch(15% 0.004 174.5)",
+          "oklch(26% 0.004 174.5)",
+          "oklch(38% 0.004 174.5)",
+          "oklch(50% 0.004 174.5)",
+          "oklch(62% 0.004 174.5)",
+          "oklch(73% 0.004 174.5)",
+          "oklch(84% 0.004 174.5)",
+          "oklch(95% 0.004 174.5)"
+        ]
+      },
+      "field-border": {
+        "role": "neutral",
+        "displayName": "Field Steel",
+        "canonical": "#8A8F90",
+        "tonalRamp": [
+          "oklch(15% 0.006 211.0)",
+          "oklch(26% 0.006 211.0)",
+          "oklch(38% 0.006 211.0)",
+          "oklch(50% 0.006 211.0)",
+          "oklch(62% 0.006 211.0)",
+          "oklch(73% 0.006 211.0)",
+          "oklch(84% 0.006 211.0)",
+          "oklch(95% 0.006 211.0)"
+        ]
+      },
+      "code-ground": {
+        "role": "neutral",
+        "displayName": "Code Ground",
+        "canonical": "#DFE2E1",
+        "tonalRamp": [
+          "oklch(15% 0.003 174.5)",
+          "oklch(26% 0.003 174.5)",
+          "oklch(38% 0.003 174.5)",
+          "oklch(50% 0.003 174.5)",
+          "oklch(62% 0.003 174.5)",
+          "oklch(73% 0.003 174.5)",
+          "oklch(84% 0.003 174.5)",
+          "oklch(95% 0.003 174.5)"
+        ]
+      },
+      "disabled": {
+        "role": "neutral",
+        "displayName": "Disabled Grey",
+        "canonical": "#DADDDC",
+        "tonalRamp": [
+          "oklch(15% 0.004 174.5)",
+          "oklch(26% 0.004 174.5)",
+          "oklch(38% 0.004 174.5)",
+          "oklch(50% 0.004 174.5)",
+          "oklch(62% 0.004 174.5)",
+          "oklch(73% 0.004 174.5)",
+          "oklch(84% 0.004 174.5)",
+          "oklch(95% 0.004 174.5)"
+        ]
+      },
+      "highlight": {
+        "role": "neutral",
+        "displayName": "Row Light",
+        "canonical": "#FAFAF7",
+        "tonalRamp": [
+          "oklch(15% 0.004 106.5)",
+          "oklch(26% 0.004 106.5)",
+          "oklch(38% 0.004 106.5)",
+          "oklch(50% 0.004 106.5)",
+          "oklch(62% 0.004 106.5)",
+          "oklch(73% 0.004 106.5)",
+          "oklch(84% 0.004 106.5)",
+          "oklch(95% 0.004 106.5)"
+        ]
+      },
+      "board": {
+        "role": "neutral",
+        "displayName": "Board Charcoal",
+        "canonical": "#1C1E1F",
+        "tonalRamp": [
+          "oklch(15% 0.004 229.0)",
+          "oklch(26% 0.004 229.0)",
+          "oklch(38% 0.004 229.0)",
+          "oklch(50% 0.004 229.0)",
+          "oklch(62% 0.004 229.0)",
+          "oklch(73% 0.004 229.0)",
+          "oklch(84% 0.004 229.0)",
+          "oklch(95% 0.004 229.0)"
+        ]
+      },
+      "flap": {
+        "role": "neutral",
+        "displayName": "Flap Charcoal",
+        "canonical": "#2A2D2F",
+        "tonalRamp": [
+          "oklch(15% 0.006 236.7)",
+          "oklch(26% 0.006 236.7)",
+          "oklch(38% 0.006 236.7)",
+          "oklch(50% 0.006 236.7)",
+          "oklch(62% 0.006 236.7)",
+          "oklch(73% 0.006 236.7)",
+          "oklch(84% 0.006 236.7)",
+          "oklch(95% 0.006 236.7)"
+        ]
+      },
+      "hinge": {
+        "role": "neutral",
+        "displayName": "Hinge Black",
+        "canonical": "#0B0C0D",
+        "tonalRamp": [
+          "oklch(15% 0.003 248.0)",
+          "oklch(26% 0.003 248.0)",
+          "oklch(38% 0.003 248.0)",
+          "oklch(50% 0.003 248.0)",
+          "oklch(62% 0.003 248.0)",
+          "oklch(73% 0.003 248.0)",
+          "oklch(84% 0.003 248.0)",
+          "oklch(95% 0.003 248.0)"
+        ]
+      },
+      "letter": {
+        "role": "neutral",
+        "displayName": "Board Letter",
+        "canonical": "#F4F1E8",
+        "tonalRamp": [
+          "oklch(15% 0.012 91.5)",
+          "oklch(26% 0.012 91.5)",
+          "oklch(38% 0.012 91.5)",
+          "oklch(50% 0.012 91.5)",
+          "oklch(62% 0.012 91.5)",
+          "oklch(73% 0.012 91.5)",
+          "oklch(84% 0.012 91.5)",
+          "oklch(95% 0.012 91.5)"
+        ]
+      },
+      "letter-muted": {
+        "role": "neutral",
+        "displayName": "Board Letter Muted",
+        "canonical": "#B9BCBD",
+        "tonalRamp": [
+          "oklch(15% 0.004 219.5)",
+          "oklch(26% 0.004 219.5)",
+          "oklch(38% 0.004 219.5)",
+          "oklch(50% 0.004 219.5)",
+          "oklch(62% 0.004 219.5)",
+          "oklch(73% 0.004 219.5)",
+          "oklch(84% 0.004 219.5)",
+          "oklch(95% 0.004 219.5)"
+        ]
+      },
+      "letter-off": {
+        "role": "neutral",
+        "displayName": "Board Letter Off",
+        "canonical": "#9DA1A3",
+        "tonalRamp": [
+          "oklch(15% 0.005 228.9)",
+          "oklch(26% 0.005 228.9)",
+          "oklch(38% 0.005 228.9)",
+          "oklch(50% 0.005 228.9)",
+          "oklch(62% 0.005 228.9)",
+          "oklch(73% 0.005 228.9)",
+          "oklch(84% 0.005 228.9)",
+          "oklch(95% 0.005 228.9)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#1C1E1F",
+        "tonalRamp": [
+          "oklch(15% 0.004 229.0)",
+          "oklch(26% 0.004 229.0)",
+          "oklch(38% 0.004 229.0)",
+          "oklch(50% 0.004 229.0)",
+          "oklch(62% 0.004 229.0)",
+          "oklch(73% 0.004 229.0)",
+          "oklch(84% 0.004 229.0)",
+          "oklch(95% 0.004 229.0)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#5E6366",
+        "tonalRamp": [
+          "oklch(15% 0.008 233.8)",
+          "oklch(26% 0.008 233.8)",
+          "oklch(38% 0.008 233.8)",
+          "oklch(50% 0.008 233.8)",
+          "oklch(62% 0.008 233.8)",
+          "oklch(73% 0.008 233.8)",
+          "oklch(84% 0.008 233.8)",
+          "oklch(95% 0.008 233.8)"
+        ]
+      },
+      "placeholder": {
+        "role": "neutral",
+        "displayName": "Placeholder Ink",
+        "canonical": "#6E7376",
+        "tonalRamp": [
+          "oklch(15% 0.008 233.7)",
+          "oklch(26% 0.008 233.7)",
+          "oklch(38% 0.008 233.7)",
+          "oklch(50% 0.008 233.7)",
+          "oklch(62% 0.008 233.7)",
+          "oklch(73% 0.008 233.7)",
+          "oklch(84% 0.008 233.7)",
+          "oklch(95% 0.008 233.7)"
+        ]
+      },
+      "on": {
+        "role": "primary",
+        "displayName": "Signal Yellow",
+        "canonical": "#F2B705",
+        "tonalRamp": [
+          "oklch(15% 0.166 85.0)",
+          "oklch(26% 0.166 85.0)",
+          "oklch(38% 0.166 85.0)",
+          "oklch(50% 0.166 85.0)",
+          "oklch(62% 0.166 85.0)",
+          "oklch(73% 0.166 85.0)",
+          "oklch(84% 0.166 85.0)",
+          "oklch(95% 0.166 85.0)"
+        ]
+      },
+      "on-hover": {
+        "role": "primary",
+        "displayName": "Lit Yellow",
+        "canonical": "#FFC93D",
+        "tonalRamp": [
+          "oklch(15% 0.159 86.3)",
+          "oklch(26% 0.159 86.3)",
+          "oklch(38% 0.159 86.3)",
+          "oklch(50% 0.159 86.3)",
+          "oklch(62% 0.159 86.3)",
+          "oklch(73% 0.159 86.3)",
+          "oklch(84% 0.159 86.3)",
+          "oklch(95% 0.159 86.3)"
+        ]
+      },
+      "recent": {
+        "role": "primary",
+        "displayName": "Departed Amber",
+        "canonical": "#7A5800",
+        "tonalRamp": [
+          "oklch(15% 0.100 82.4)",
+          "oklch(26% 0.100 82.4)",
+          "oklch(38% 0.100 82.4)",
+          "oklch(50% 0.100 82.4)",
+          "oklch(62% 0.100 82.4)",
+          "oklch(73% 0.100 82.4)",
+          "oklch(84% 0.100 82.4)",
+          "oklch(95% 0.100 82.4)"
+        ]
+      },
+      "protect": {
+        "role": "secondary",
+        "displayName": "Platform Red",
+        "canonical": "#C8102E",
+        "tonalRamp": [
+          "oklch(15% 0.207 22.3)",
+          "oklch(26% 0.207 22.3)",
+          "oklch(38% 0.207 22.3)",
+          "oklch(50% 0.207 22.3)",
+          "oklch(62% 0.207 22.3)",
+          "oklch(73% 0.207 22.3)",
+          "oklch(84% 0.207 22.3)",
+          "oklch(95% 0.207 22.3)"
+        ]
+      },
+      "protect-dark": {
+        "role": "secondary",
+        "displayName": "Deep Platform Red",
+        "canonical": "#A30D25",
+        "tonalRamp": [
+          "oklch(15% 0.177 22.0)",
+          "oklch(26% 0.177 22.0)",
+          "oklch(38% 0.177 22.0)",
+          "oklch(50% 0.177 22.0)",
+          "oklch(62% 0.177 22.0)",
+          "oklch(73% 0.177 22.0)",
+          "oklch(84% 0.177 22.0)",
+          "oklch(95% 0.177 22.0)"
+        ]
+      },
+      "protect-on-board": {
+        "role": "secondary",
+        "displayName": "Board Red",
+        "canonical": "#FF6B7A",
+        "tonalRamp": [
+          "oklch(15% 0.180 16.8)",
+          "oklch(26% 0.180 16.8)",
+          "oklch(38% 0.180 16.8)",
+          "oklch(50% 0.180 16.8)",
+          "oklch(62% 0.180 16.8)",
+          "oklch(73% 0.180 16.8)",
+          "oklch(84% 0.180 16.8)",
+          "oklch(95% 0.180 16.8)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Page titles in uppercase condensed capitals; 32px at phone width and in the gate panel; flag keys as titles keep their case."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section headings, empty-state titles, application names, confirmation titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Flag keys and names in boards and ledgers, case preserved."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running text, inputs and meta lines."
+      },
+      "body-small": {
+        "displayName": "Body small",
+        "purpose": "Descriptions, when-and-who beside tiles, hints (12-14px)."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Form labels, legends, buttons, navigation and table headings in tracked capitals (13-15px)."
+      },
+      "tile": {
+        "displayName": "Tile",
+        "purpose": "ON/OFF lettering on split-flap tiles; plates use 11px at the same tracking."
+      },
+      "code": {
+        "displayName": "Code",
+        "purpose": "Inline keys and prefixes in prose."
+      }
+    },
+    "shadows": [],
+    "overlays": [
+      {
+        "name": "hinge",
+        "value": "1px line, var(--hinge), at 50% height behind the letters",
+        "purpose": "The only depth: the gap between a flap's halves."
+      },
+      {
+        "name": "hinge-on-yellow",
+        "value": "rgb(0 0 0 / 0.25)",
+        "purpose": "The hinge on an ON tile."
+      },
+      {
+        "name": "confirm-backdrop",
+        "value": "rgb(28 30 31 / 0.5)",
+        "purpose": "Flat dim behind a confirmation popover."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-transition",
+        "value": "120ms ease-out (background-color, color, border-color)",
+        "purpose": "Button state changes."
+      },
+      {
+        "name": "press",
+        "value": "translateY(1px)",
+        "purpose": "Pressed mark on buttons and tiles."
+      },
+      {
+        "name": "flap-fall",
+        "value": "320ms cubic-bezier(0.55, 0, 0.75, 0.2); perspective(120px) rotateX(0deg to -90deg), origin bottom",
+        "purpose": "The old value's top half folds down once after a toggle."
+      },
+      {
+        "name": "flap-letters",
+        "value": "320ms steps(1, end) backwards",
+        "purpose": "Holds the new letters transparent until the flap has fallen."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce removes transitions and the fold",
+        "purpose": "No flip for owners who ask for less motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "stack-flips",
+        "value": "1200px",
+        "purpose": "Latest flips drops beneath the board."
+      },
+      {
+        "name": "phone",
+        "value": "720px",
+        "purpose": "One block per flag; ledgers become labelled stacks."
+      }
+    ],
+    "constraints": [
+      "Static server-side rendering with plain form posts; no interactive render mode.",
+      "Content Security Policy: no inline styles or scripts, self-hosted fonts only, no <base> element, so asset URLs are root-relative.",
+      "The only script is passkeys.js; menus use <details>, confirmations use the popover attribute."
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Default action (New flag, form submits): charcoal block, yellow lettering on hover.",
+      "html": "<button class=\"ds-btn\">New flag</button>",
+      "css": ":host{--ground:#EDEFEE;--surface:#FFFFFF;--rule:#D3D6D5;--field-border:#8A8F90;--disabled:#DADDDC;--board:#1C1E1F;--flap:#2A2D2F;--hinge:#0B0C0D;--letter:#F4F1E8;--letter-muted:#B9BCBD;--letter-off:#9DA1A3;--ink:#1C1E1F;--muted:#5E6366;--placeholder:#6E7376;--on:#F2B705;--on-hover:#FFC93D;--recent:#7A5800;--protect:#C8102E;--protect-dark:#A30D25;--font-ui:\"Barlow\",system-ui,sans-serif;--font-board:\"Barlow Condensed\",\"Barlow\",system-ui,sans-serif;--control-height:40px} .ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:var(--control-height);padding:0 18px;border:1px solid var(--board);border-radius:3px;background:var(--board);color:var(--letter);font:600 15px/1 var(--font-board);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;cursor:pointer;transition:background-color 120ms ease-out,color 120ms ease-out,border-color 120ms ease-out} .ds-btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px} .ds-btn:active{transform:translateY(1px)} .ds-btn:disabled{border-color:var(--disabled);background:var(--disabled);color:var(--muted);cursor:not-allowed;transform:none} .ds-btn:hover{background:var(--hinge);color:var(--on)}"
+    },
+    {
+      "name": "Signal Button",
+      "kind": "button",
+      "refersTo": "button-signal",
+      "description": "Confirms turning a protected value on.",
+      "html": "<button class=\"ds-btn ds-btn-signal\">Turn on in Production</button>",
+      "css": ":host{--ground:#EDEFEE;--surface:#FFFFFF;--rule:#D3D6D5;--field-border:#8A8F90;--disabled:#DADDDC;--board:#1C1E1F;--flap:#2A2D2F;--hinge:#0B0C0D;--letter:#F4F1E8;--letter-muted:#B9BCBD;--letter-off:#9DA1A3;--ink:#1C1E1F;--muted:#5E6366;--placeholder:#6E7376;--on:#F2B705;--on-hover:#FFC93D;--recent:#7A5800;--protect:#C8102E;--protect-dark:#A30D25;--font-ui:\"Barlow\",system-ui,sans-serif;--font-board:\"Barlow Condensed\",\"Barlow\",system-ui,sans-serif;--control-height:40px} .ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:var(--control-height);padding:0 18px;border:1px solid var(--board);border-radius:3px;background:var(--board);color:var(--letter);font:600 15px/1 var(--font-board);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;cursor:pointer;transition:background-color 120ms ease-out,color 120ms ease-out,border-color 120ms ease-out} .ds-btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px} .ds-btn:active{transform:translateY(1px)} .ds-btn:disabled{border-color:var(--disabled);background:var(--disabled);color:var(--muted);cursor:not-allowed;transform:none} .ds-btn-signal{border-color:var(--on);background:var(--on);color:var(--ink)} .ds-btn-signal:hover{border-color:var(--on-hover);background:var(--on-hover)}"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Secondary actions: Filter, Cancel, Restore.",
+      "html": "<button class=\"ds-btn ds-btn-quiet\">Cancel</button>",
+      "css": ":host{--ground:#EDEFEE;--surface:#FFFFFF;--rule:#D3D6D5;--field-border:#8A8F90;--disabled:#DADDDC;--board:#1C1E1F;--flap:#2A2D2F;--hinge:#0B0C0D;--letter:#F4F1E8;--letter-muted:#B9BCBD;--letter-off:#9DA1A3;--ink:#1C1E1F;--muted:#5E6366;--placeholder:#6E7376;--on:#F2B705;--on-hover:#FFC93D;--recent:#7A5800;--protect:#C8102E;--protect-dark:#A30D25;--font-ui:\"Barlow\",system-ui,sans-serif;--font-board:\"Barlow Condensed\",\"Barlow\",system-ui,sans-serif;--control-height:40px} .ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:var(--control-height);padding:0 18px;border:1px solid var(--board);border-radius:3px;background:var(--board);color:var(--letter);font:600 15px/1 var(--font-board);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;cursor:pointer;transition:background-color 120ms ease-out,color 120ms ease-out,border-color 120ms ease-out} .ds-btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px} .ds-btn:active{transform:translateY(1px)} .ds-btn:disabled{border-color:var(--disabled);background:var(--disabled);color:var(--muted);cursor:not-allowed;transform:none} .ds-btn-quiet{border-color:var(--field-border);background:transparent;color:var(--ink)} .ds-btn-quiet:hover{border-color:var(--ink);background:var(--surface)}"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Archive, delete, remove: red outline that fills on hover; the solid form confirms.",
+      "html": "<button class=\"ds-btn ds-btn-danger\">Delete</button> <button class=\"ds-btn ds-btn-danger-solid\">Delete flag</button>",
+      "css": ":host{--ground:#EDEFEE;--surface:#FFFFFF;--rule:#D3D6D5;--field-border:#8A8F90;--disabled:#DADDDC;--board:#1C1E1F;--flap:#2A2D2F;--hinge:#0B0C0D;--letter:#F4F1E8;--letter-muted:#B9BCBD;--letter-off:#9DA1A3;--ink:#1C1E1F;--muted:#5E6366;--placeholder:#6E7376;--on:#F2B705;--on-hover:#FFC93D;--recent:#7A5800;--protect:#C8102E;--protect-dark:#A30D25;--font-ui:\"Barlow\",system-ui,sans-serif;--font-board:\"Barlow Condensed\",\"Barlow\",system-ui,sans-serif;--control-height:40px} .ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:var(--control-height);padding:0 18px;border:1px solid var(--board);border-radius:3px;background:var(--board);color:var(--letter);font:600 15px/1 var(--font-board);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;cursor:pointer;transition:background-color 120ms ease-out,color 120ms ease-out,border-color 120ms ease-out} .ds-btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px} .ds-btn:active{transform:translateY(1px)} .ds-btn:disabled{border-color:var(--disabled);background:var(--disabled);color:var(--muted);cursor:not-allowed;transform:none} .ds-btn-danger{border-color:var(--protect);background:transparent;color:var(--protect)} .ds-btn-danger:hover{background:var(--protect);color:var(--surface)} .ds-btn-danger-solid{border-color:var(--protect);background:var(--protect);color:var(--surface)} .ds-btn-danger-solid:hover{border-color:var(--protect-dark);background:var(--protect-dark)}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Labelled 40px field; border darkens to ink on hover and focus.",
+      "html": "<label class=\"ds-label\" for=\"ds-k\">Key</label><input id=\"ds-k\" class=\"ds-input\" placeholder=\"operator-denue-imports\">",
+      "css": ":host{--ground:#EDEFEE;--surface:#FFFFFF;--rule:#D3D6D5;--field-border:#8A8F90;--disabled:#DADDDC;--board:#1C1E1F;--flap:#2A2D2F;--hinge:#0B0C0D;--letter:#F4F1E8;--letter-muted:#B9BCBD;--letter-off:#9DA1A3;--ink:#1C1E1F;--muted:#5E6366;--placeholder:#6E7376;--on:#F2B705;--on-hover:#FFC93D;--recent:#7A5800;--protect:#C8102E;--protect-dark:#A30D25;--font-ui:\"Barlow\",system-ui,sans-serif;--font-board:\"Barlow Condensed\",\"Barlow\",system-ui,sans-serif;--control-height:40px} .ds-label{display:block;margin-bottom:8px;color:var(--muted);font:600 14px/1 var(--font-board);letter-spacing:.1em;text-transform:uppercase} .ds-input{width:100%;height:var(--control-height);padding:0 12px;border:1px solid var(--field-border);border-radius:3px;background:var(--surface);color:var(--ink);font:400 15px/1 var(--font-ui)} .ds-input::placeholder{color:var(--placeholder)} .ds-input:hover,.ds-input:focus-visible{border-color:var(--ink)} .ds-input:focus-visible{outline:2px solid var(--ink);outline-offset:1px}"
+    },
+    {
+      "name": "Board Bar",
+      "kind": "nav",
+      "refersTo": "board-bar",
+      "description": "The 64px charcoal header: flap wordmark, tracked navigation with a yellow underline on the active page.",
+      "html": "<header class=\"ds-bar\"><span class=\"ds-wm\"><span class=\"ds-flap\">P</span><span class=\"ds-flap\">A</span><span class=\"ds-flap\">L</span><span class=\"ds-flap\">A</span><span class=\"ds-flap\">N</span><span class=\"ds-flap\">C</span><span class=\"ds-flap\">A</span></span><nav class=\"ds-nav\"><a href=\"#\" class=\"ds-active\">Applications</a><a href=\"#\">Passkeys</a></nav></header>",
+      "css": ":host{--ground:#EDEFEE;--surface:#FFFFFF;--rule:#D3D6D5;--field-border:#8A8F90;--disabled:#DADDDC;--board:#1C1E1F;--flap:#2A2D2F;--hinge:#0B0C0D;--letter:#F4F1E8;--letter-muted:#B9BCBD;--letter-off:#9DA1A3;--ink:#1C1E1F;--muted:#5E6366;--placeholder:#6E7376;--on:#F2B705;--on-hover:#FFC93D;--recent:#7A5800;--protect:#C8102E;--protect-dark:#A30D25;--font-ui:\"Barlow\",system-ui,sans-serif;--font-board:\"Barlow Condensed\",\"Barlow\",system-ui,sans-serif;--control-height:40px} .ds-bar{display:flex;align-items:center;gap:0 40px;min-height:64px;padding:0 40px;background:var(--board);color:var(--letter-muted)} .ds-wm{display:inline-flex;gap:3px} .ds-flap{position:relative;z-index:0;display:grid;place-items:center;width:22px;height:30px;border-radius:2px;background:var(--flap);color:var(--letter);font:700 19px/1 var(--font-board)} .ds-flap::after{content:\"\";position:absolute;inset:50% 0 auto;z-index:-1;height:1px;background:var(--hinge)} .ds-nav{display:flex;align-self:stretch;gap:28px} .ds-nav a{display:flex;align-items:center;padding-top:3px;border-bottom:3px solid transparent;color:var(--letter-muted);font:600 15px/1 var(--font-board);letter-spacing:.1em;text-decoration:none;text-transform:uppercase} .ds-nav a:hover{color:var(--letter)} .ds-nav a.ds-active{border-bottom-color:var(--on);color:var(--letter)} .ds-nav a:focus-visible{outline:2px solid var(--on);outline-offset:2px}"
+    },
+    {
+      "name": "Split-Flap Tile",
+      "kind": "custom",
+      "refersTo": "tile-on",
+      "description": "The board's primary action: OFF charcoal, ON yellow, hinge behind the letters; recent tiles carry a yellow ring.",
+      "html": "<button class=\"ds-tile\">OFF</button> <button class=\"ds-tile ds-on\">ON</button> <button class=\"ds-tile ds-on ds-recent\">ON</button>",
+      "css": ":host{--ground:#EDEFEE;--surface:#FFFFFF;--rule:#D3D6D5;--field-border:#8A8F90;--disabled:#DADDDC;--board:#1C1E1F;--flap:#2A2D2F;--hinge:#0B0C0D;--letter:#F4F1E8;--letter-muted:#B9BCBD;--letter-off:#9DA1A3;--ink:#1C1E1F;--muted:#5E6366;--placeholder:#6E7376;--on:#F2B705;--on-hover:#FFC93D;--recent:#7A5800;--protect:#C8102E;--protect-dark:#A30D25;--font-ui:\"Barlow\",system-ui,sans-serif;--font-board:\"Barlow Condensed\",\"Barlow\",system-ui,sans-serif;--control-height:40px} .ds-tile{position:relative;z-index:0;display:inline-grid;place-items:center;width:60px;height:30px;padding:0;border:0;border-radius:3px;background:var(--board);color:var(--letter-off);font:700 15px/1 var(--font-board);letter-spacing:.14em;vertical-align:middle;cursor:pointer} .ds-tile::after{content:\"\";position:absolute;inset:50% 0 auto;z-index:-1;height:1px;background:var(--hinge)} .ds-tile.ds-on{background:var(--on);color:var(--ink)} .ds-tile.ds-on::after{background:rgb(0 0 0 / .25)} .ds-tile:hover{outline:2px solid var(--muted);outline-offset:2px} .ds-tile:focus-visible{outline:2px solid var(--ink);outline-offset:2px} .ds-tile:active{transform:translateY(1px)} .ds-tile.ds-recent{outline:2px solid var(--on);outline-offset:2px} "
+    },
+    {
+      "name": "Protected Plate and Environment Tags",
+      "kind": "chip",
+      "refersTo": "plate-protected",
+      "description": "Red plate heading a protected column; outlined environment tags on the home list.",
+      "html": "<span class=\"ds-plate\">Protected</span> <span class=\"ds-tag\">Staging</span> <span class=\"ds-tag ds-tag-p\">Production</span>",
+      "css": ":host{--ground:#EDEFEE;--surface:#FFFFFF;--rule:#D3D6D5;--field-border:#8A8F90;--disabled:#DADDDC;--board:#1C1E1F;--flap:#2A2D2F;--hinge:#0B0C0D;--letter:#F4F1E8;--letter-muted:#B9BCBD;--letter-off:#9DA1A3;--ink:#1C1E1F;--muted:#5E6366;--placeholder:#6E7376;--on:#F2B705;--on-hover:#FFC93D;--recent:#7A5800;--protect:#C8102E;--protect-dark:#A30D25;--font-ui:\"Barlow\",system-ui,sans-serif;--font-board:\"Barlow Condensed\",\"Barlow\",system-ui,sans-serif;--control-height:40px} .ds-plate{display:inline-block;padding:3px 7px;border-radius:2px;background:var(--protect);color:var(--surface);font:700 11px/1 var(--font-board);letter-spacing:.14em;text-transform:uppercase} .ds-tag{padding:3px 8px;border:1px solid var(--field-border);border-radius:2px;color:var(--ink);font:600 12px/1.2 var(--font-board);letter-spacing:.1em;text-transform:uppercase} .ds-tag-p{border-color:var(--protect);color:var(--protect)}"
+    },
+    {
+      "name": "Latest Flips Panel",
+      "kind": "card",
+      "refersTo": "board-panel",
+      "description": "Charcoal departures list: time column, key and who, small tile; agent changes attributed in yellow.",
+      "html": "<aside class=\"ds-flips\"><h2>Latest flips</h2><ol><li class=\"ds-flip ds-agent\"><time>02:01</time><span class=\"ds-fk\">provider-onboarding-v2</span><span class=\"ds-fd\">Staging · token claude-staging</span><span class=\"ds-tile ds-small ds-on\">ON</span></li><li class=\"ds-flip\"><time>Yest.</time><span class=\"ds-fk\">new-search</span><span class=\"ds-fd\">Production · you</span><span class=\"ds-tile ds-small\">OFF</span></li></ol></aside>",
+      "css": ":host{--ground:#EDEFEE;--surface:#FFFFFF;--rule:#D3D6D5;--field-border:#8A8F90;--disabled:#DADDDC;--board:#1C1E1F;--flap:#2A2D2F;--hinge:#0B0C0D;--letter:#F4F1E8;--letter-muted:#B9BCBD;--letter-off:#9DA1A3;--ink:#1C1E1F;--muted:#5E6366;--placeholder:#6E7376;--on:#F2B705;--on-hover:#FFC93D;--recent:#7A5800;--protect:#C8102E;--protect-dark:#A30D25;--font-ui:\"Barlow\",system-ui,sans-serif;--font-board:\"Barlow Condensed\",\"Barlow\",system-ui,sans-serif;--control-height:40px} .ds-tile{position:relative;z-index:0;display:inline-grid;place-items:center;width:60px;height:30px;padding:0;border:0;border-radius:3px;background:var(--board);color:var(--letter-off);font:700 15px/1 var(--font-board);letter-spacing:.14em;vertical-align:middle;cursor:pointer} .ds-tile::after{content:\"\";position:absolute;inset:50% 0 auto;z-index:-1;height:1px;background:var(--hinge)} .ds-tile.ds-on{background:var(--on);color:var(--ink)} .ds-tile.ds-on::after{background:rgb(0 0 0 / .25)} .ds-tile:hover{outline:2px solid var(--muted);outline-offset:2px} .ds-tile:focus-visible{outline:2px solid var(--ink);outline-offset:2px} .ds-tile:active{transform:translateY(1px)} .ds-tile.ds-recent{outline:2px solid var(--on);outline-offset:2px} .ds-flips{max-width:340px;padding:20px 20px 8px;border-radius:4px;background:var(--board);color:var(--letter);font:400 15px/1.5 var(--font-ui)} .ds-flips h2{margin:0 0 12px;color:var(--on);font:700 18px/1.1 var(--font-board);letter-spacing:.14em;text-transform:uppercase} .ds-flips ol{margin:0;padding:0;list-style:none} .ds-flip{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:2px 12px;padding:12px 0;border-top:1px solid #34383A} .ds-flip time{grid-row:1/span 2;color:var(--letter);font:600 15px/20px var(--font-board);letter-spacing:.06em} .ds-fk{grid-column:2;font:600 16px/1.25 var(--font-board);letter-spacing:.03em} .ds-fd{grid-column:2;color:var(--letter-muted);font-size:13px} .ds-agent .ds-fd{color:var(--on)} .ds-flip .ds-tile{grid-row:1/span 2;grid-column:3;align-self:center;background:var(--flap);cursor:default} .ds-flip .ds-tile.ds-on{background:var(--on)} .ds-small{width:48px;height:24px;font-size:13px}"
+    },
+    {
+      "name": "Confirmation",
+      "kind": "card",
+      "refersTo": "confirm",
+      "description": "Protected-environment confirmation naming application, environment, flag and new value.",
+      "html": "<div class=\"ds-confirm\"><p class=\"ds-ct\">Turn <span class=\"ds-lit\">new-search</span> on in Production?</p><dl><div><dt>Application</dt><dd>HogarHero</dd></div><div><dt>Flag</dt><dd class=\"ds-lit\">new-search</dd></div></dl><div class=\"ds-actions\"><button class=\"ds-btn ds-btn-signal\">Turn on in Production</button><button class=\"ds-btn ds-btn-quiet\">Cancel</button></div></div>",
+      "css": ":host{--ground:#EDEFEE;--surface:#FFFFFF;--rule:#D3D6D5;--field-border:#8A8F90;--disabled:#DADDDC;--board:#1C1E1F;--flap:#2A2D2F;--hinge:#0B0C0D;--letter:#F4F1E8;--letter-muted:#B9BCBD;--letter-off:#9DA1A3;--ink:#1C1E1F;--muted:#5E6366;--placeholder:#6E7376;--on:#F2B705;--on-hover:#FFC93D;--recent:#7A5800;--protect:#C8102E;--protect-dark:#A30D25;--font-ui:\"Barlow\",system-ui,sans-serif;--font-board:\"Barlow Condensed\",\"Barlow\",system-ui,sans-serif;--control-height:40px} .ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:var(--control-height);padding:0 18px;border:1px solid var(--board);border-radius:3px;background:var(--board);color:var(--letter);font:600 15px/1 var(--font-board);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;cursor:pointer;transition:background-color 120ms ease-out,color 120ms ease-out,border-color 120ms ease-out} .ds-btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px} .ds-btn:active{transform:translateY(1px)} .ds-btn:disabled{border-color:var(--disabled);background:var(--disabled);color:var(--muted);cursor:not-allowed;transform:none} .ds-btn-signal{border-color:var(--on);background:var(--on);color:var(--ink)} .ds-btn-signal:hover{background:var(--on-hover);border-color:var(--on-hover)} .ds-btn-quiet{border-color:var(--field-border);background:transparent;color:var(--ink)} .ds-btn-quiet:hover{border-color:var(--ink);background:var(--surface)} .ds-confirm{max-width:440px;padding:24px;border:1px solid var(--ink);border-radius:4px;background:var(--surface);color:var(--ink);font:400 15px/1.5 var(--font-ui)} .ds-ct{margin:0 0 8px;font:700 22px/1.1 var(--font-board);letter-spacing:.04em;text-transform:uppercase} .ds-lit{text-transform:none;letter-spacing:.01em} .ds-confirm dl{display:grid;gap:8px;margin:0 0 20px} .ds-confirm dl div{display:grid;grid-template-columns:120px 1fr;align-items:center} .ds-confirm dt{color:var(--muted);font:600 13px/1 var(--font-board);letter-spacing:.1em;text-transform:uppercase} .ds-confirm dd{margin:0;font-weight:600} .ds-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Departure Board",
+    "overview": "Palanca's dashboard reads like a station's departure board hung in a concourse. The page ground is a pale concourse grey; the shell's header and the side panels are a charcoal board; every flag value is a split-flap tile, charcoal for OFF and signal yellow for ON, with a hairline hinge drawn across its middle. The latest changes appear in a Latest flips panel styled like a departures list, and a tile that has just been toggled plays one split-flap fold. Before reading a word, the owner sees which flags are on where and what changed recently.\n\nThe density is that of an operations board: 56px rows, 40px controls, condensed capitals for everything the board \"prints\" (headings, labels, buttons, tiles, navigation) and a plain humanist sans for running text. Hierarchy comes from type scale and weight, not from colour or depth. Surfaces are flat; the only depth anywhere is the hinge line and the dim behind a confirmation popover.\n\nThe world lives under hard constraints that shaped it: static server-side rendering with plain form posts, a Content Security Policy that forbids inline styles and scripts and allows only self-hosted fonts (so asset URLs are root-relative and there is no `<base>`), and a single script (`passkeys.js`). Every interaction is therefore CSS and HTML: disclosures (`<details>`) for menus, the `popover` attribute for confirmations, and a post-redirect query parameter to trigger the flip. The world rejects the settings table with pill switches.",
+    "keyCharacteristics": [
+      "Concourse grey ground, charcoal board for the shell, white ledger tables for data.",
+      "Split-flap tiles as the one primary action: charcoal OFF, yellow ON, hinge behind the letters.",
+      "Barlow Condensed capitals for board type; Barlow for running text; keys always verbatim.",
+      "Flat colour throughout: no shadows, gradients or blur.",
+      "A 4px module: 64px header, 56px rows, 40px controls.",
+      "Yellow for ON and what is current; red for protected environments, destruction and errors.",
+      "One fold animation (320ms), removed under reduced motion."
+    ],
+    "rules": [
+      {
+        "name": "The Yellow Means On Rule",
+        "body": "On light ground, yellow marks only ON, what is current (active page, recent change) and the signal action. It is never decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Red Is a Warning Rule",
+        "body": "Red marks protected environments, destructive actions and errors, nothing else. A red element always means \"this is consequential\".",
+        "section": "colors"
+      },
+      {
+        "name": "The Keys Verbatim Rule",
+        "body": "Board type is set in capitals, but application, environment and flag keys always appear exactly as code reads them: case preserved, tracking reduced to 0.01-0.03em.",
+        "section": "typography"
+      },
+      {
+        "name": "The Scale and Weight Rule",
+        "body": "Hierarchy is carried by size, weight and case. Colour separates only ink from muted ink.",
+        "section": "typography"
+      },
+      {
+        "name": "The Hinge Is the Only Depth Rule",
+        "body": "If a surface needs to stand out, change its tone or its border, never add a shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** show every flag value as a split-flap tile: charcoal OFF, yellow ON, hinge behind the letters.",
+      "**Do** size rows, controls and the header from the 4px module (56px rows, 40px controls, 64px header).",
+      "**Do** set headings, labels, buttons and navigation in tracked Barlow Condensed capitals, and running text in Barlow.",
+      "**Do** show keys exactly as code reads them, with case preserved.",
+      "**Do** keep archive, revoke, delete and protected confirmation apart from routine actions: spaced away from routine buttons in rows (32px in ledgers, an extra 16px in settings), in a danger zone 64px below the last section, behind a confirmation that names what changes.",
+      "**Do** keep archived items greyed at the end of their list.",
+      "**Do** give every control a distinct rest, hover, focus, pressed and disabled mark.",
+      "**Do** build interactions from HTML and CSS (`<details>`, `popover`, form posts); keep all styles in the stylesheet and all assets self-hosted with root-relative URLs.",
+      "**Do** drop the fold and button transitions under `prefers-reduced-motion`."
+    ],
+    "donts": [
+      "**Don't** use pill switches for flag values; on the board and in Latest flips the tile is the toggle and the readout.",
+      "**Don't** add shadows, gradients, blur or translucent surfaces; depth is tone and the hinge.",
+      "**Don't** use yellow for decoration on light ground, or red for anything but protected, destructive or error states.",
+      "**Don't** present applications or flags as cards; they are rows.",
+      "**Don't** use inline `style` attributes, inline scripts, external fonts or a `<base>` element; the Content Security Policy forbids them.",
+      "**Don't** round anything beyond 4px."
+    ]
+  }
+}

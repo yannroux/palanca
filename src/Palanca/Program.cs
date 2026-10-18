@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Palanca;
+using Palanca.Applications;
 using Palanca.Commands;
 using Palanca.Components;
 using Palanca.Data;
@@ -27,6 +28,9 @@ builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddPalancaData();
 builder.Services.AddScoped<FlagValueWriter>();
+builder.Services.AddScoped<FlagCommands>();
+builder.Services.AddScoped<ApplicationCommands>();
+builder.Services.AddScoped<BoardQueries>();
 builder.Services.AddClientAddress();
 builder.Services.AddOwnerAuthentication();
 builder.Services.AddRazorComponents();

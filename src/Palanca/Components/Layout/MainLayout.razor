@@ -1,12 +1,14 @@
 @inherits LayoutComponentBase
+@inject NavigationManager Navigation
 
 <header class="board-bar">
     <a class="board-home" href="/"><Wordmark /></a>
     <nav class="board-nav" aria-label="Main">
-        <NavLink href="/" Match="NavLinkMatch.All">Applications</NavLink>
-        <NavLink href="/passkeys">Passkeys</NavLink>
+        <a href="/" class="@Active(applications: true)" aria-current="@Current(applications: true)">Applications</a>
+        <a href="/passkeys" class="@Active(applications: false)" aria-current="@Current(applications: false)">Passkeys</a>
     </nav>
     <div class="board-owner">
+        <SectionOutlet SectionName="@BoardContext" />
         <span class="board-owner-email">@HttpContext.User.Identity?.Name</span>
         <form method="post" action="/sign-out">
             <AntiforgeryToken />
@@ -19,6 +21,22 @@
 </main>
 
 @code {
+    /// <summary>The header slot an application page fills with its application switcher.</summary>
+    public const string BoardContext = "board-context";
+
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = null!;
+
+    private bool OnApplications
+    {
+        get
+        {
+            var path = "/" + Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
+            return path == "/" || path.StartsWith("/apps/", StringComparison.Ordinal);
+        }
+    }
+
+    private string? Active(bool applications) => OnApplications == applications ? "active" : null;
+
+    private string? Current(bool applications) => OnApplications == applications ? "page" : null;
 }

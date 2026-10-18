@@ -9,6 +9,11 @@ public sealed class DashboardGateTests(PalancaFactory factory) : IClassFixture<P
     [Theory]
     [InlineData("/")]
     [InlineData("/passkeys")]
+    [InlineData("/apps/hogarhero")]
+    [InlineData("/apps/hogarhero/settings")]
+    [InlineData("/apps/hogarhero/flags/new")]
+    [InlineData("/apps/hogarhero/flags/new-search")]
+    [InlineData("/apps/hogarhero/confirm?flag=new-search&env=production&value=on")]
     public async Task APageWithoutASessionSendsTheBrowserToSignIn(string path)
     {
         using var client = new DashboardClient(factory);

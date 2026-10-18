@@ -90,6 +90,17 @@ public sealed class FlagValueWriterTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task AProtectedEnvironmentNeedsAConfirmedChange()
+    {
+        var result = await _factory.WithDbAsync(db => new FlagValueWriter(db, _time)
+            .SetAsync("hogarhero", "new-search", "production", true, Owner, confirmed: false, TestContext.Current.CancellationToken));
+
+        Assert.Equal(new SetFlagValueResult(SetFlagValueOutcome.ConfirmationRequired, 0), result);
+        Assert.Equal(0, await _factory.WithDbAsync(db => db.FlagValues.CountAsync(TestContext.Current.CancellationToken)));
+        Assert.Equal(0, await _factory.WithDbAsync(db => db.ChangeRecords.CountAsync(TestContext.Current.CancellationToken)));
+    }
+
+    [Fact]
     public async Task ConcurrentChangesEachRaiseTheRevision()
     {
         var results = await RunTogetherAsync(Enumerable.Range(0, 20).Select(i =>
@@ -159,7 +170,7 @@ public sealed class FlagValueWriterTests : IAsyncLifetime
 
     private Task<SetFlagValueResult> SetAsync(string applicationKey, string flagKey, string environmentKey, bool enabled) =>
         _factory.WithDbAsync(db => new FlagValueWriter(db, _time)
-            .SetAsync(applicationKey, flagKey, environmentKey, enabled, Owner, TestContext.Current.CancellationToken));
+            .SetAsync(applicationKey, flagKey, environmentKey, enabled, Owner, confirmed: true, TestContext.Current.CancellationToken));
 
     // Microsoft.Data.Sqlite completes its async calls synchronously, so writers started in a loop
     // would run one after another. Separate threads released together make them overlap.
@@ -180,6 +191,6 @@ public sealed class FlagValueWriterTests : IAsyncLifetime
     {
         await using var scope = _factory.Services.CreateAsyncScope();
         var writer = scope.ServiceProvider.GetRequiredService<FlagValueWriter>();
-        return await writer.SetAsync(applicationKey, flagKey, environmentKey, enabled, Owner, TestContext.Current.CancellationToken);
+        return await writer.SetAsync(applicationKey, flagKey, environmentKey, enabled, Owner, confirmed: true, TestContext.Current.CancellationToken);
     }
 }

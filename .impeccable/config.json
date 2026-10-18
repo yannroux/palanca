@@ -20,6 +20,33 @@
         ],
         "createdAt": "2026-10-18T00:19:14.982Z",
         "reason": "Claude: title block cells are inset 10px by their span padding (verified in a 1440x900 capture); detector reads the wrapper div only"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-10-18T02:04:05.328Z",
+        "reason": "Claude: step-3 decision sketch, a historical artifact depicting a candidate direction (canon and pick use other worlds' fonts by design); not shipped UI"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/model-pick.html"
+        ],
+        "createdAt": "2026-10-18T02:04:05.335Z",
+        "reason": "Claude: step-3 decision sketch, a historical artifact depicting a candidate direction (canon and pick use other worlds' fonts by design); not shipped UI"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-10-18T02:04:05.341Z",
+        "reason": "Claude: step-3 decision sketch, a historical artifact depicting a candidate direction (canon and pick use other worlds' fonts by design); not shipped UI"
       }
     ]
   }

@@ -1,0 +1,221 @@
+@page "/apps/{AppKey}/flags/{FlagKey}"
+@using Palanca.Applications
+@using Palanca.Flags
+@inject BoardQueries Queries
+@inject FlagCommands Flags
+@inject NavigationManager Navigation
+@inject TimeProvider Time
+
+<PageTitle>@FlagKey · Palanca</PageTitle>
+<SectionContent SectionName="@MainLayout.BoardContext"><AppSwitcher Current="@AppKey" /></SectionContent>
+
+@if (flag is null)
+{
+    <div class="empty">
+        <p class="empty-title">No such flag</p>
+        <p><a href="/apps/@AppKey">Back to the board</a>.</p>
+    </div>
+    return;
+}
+
+<div class="page-head">
+    <h1 class="flag-title">@flag.Key</h1>
+    <p class="page-meta">
+        <a href="/apps/@AppKey#flag-@flag.Key">Back to the board</a> · created @Display.Ago(flag.CreatedAt, now)
+        @if (flag.ArchivedAt is { } archivedAt)
+        {
+            <span class="plate plate-archived">Archived @Display.Ago(archivedAt, now)</span>
+        }
+    </p>
+</div>
+
+@if (message is not null)
+{
+    <Notice Kind="kind">@message</Notice>
+}
+
+<form method="post" @formname="description" @onsubmit="SaveDescriptionAsync" class="form-stack">
+    <AntiforgeryToken />
+    <div class="field">
+        <label for="flag-description">Description</label>
+        <textarea id="flag-description" name="Description" required maxlength="1000" rows="3">@(Description ?? flag.Description)</textarea>
+    </div>
+    <div class="form-actions">
+        <button type="submit" class="button button-quiet">Save description</button>
+    </div>
+</form>
+
+<section class="form-section" aria-labelledby="values-title">
+    <h2 id="values-title">Values</h2>
+    @if (flag.Cells.Count == 0)
+    {
+        <p>The application has no environments yet.</p>
+    }
+    else
+    {
+        <table class="ledger">
+            <thead>
+                <tr><th scope="col">Environment</th><th scope="col">Value</th><th scope="col">Last change</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var cell in flag.Cells)
+                {
+                    <tr>
+                        <td class="cell-name">
+                            @cell.Environment.Name
+                            @if (cell.Environment.IsProtected)
+                            {
+                                <span class="plate">Protected</span>
+                            }
+                        </td>
+                        <td data-label="Value"><span class="tile@(cell.Enabled ? " on" : null)">@Display.OnOff(cell.Enabled)</span></td>
+                        <td class="cell-time" data-label="Last change">
+                            @(cell.UpdatedAt is { } updatedAt ? $"{Display.Timestamp(updatedAt)} · {Display.Author(cell.UpdatedBy!, HttpContext.User.Identity?.Name)}" : "Never set")
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <p class="field-hint">Change values on the <a href="/apps/@AppKey#flag-@flag.Key">board</a>.</p>
+    }
+</section>
+
+<section class="danger-zone" aria-labelledby="lifecycle-title">
+    <h2 id="lifecycle-title">@(flag.ArchivedAt is null ? "Archive" : "Restore or delete")</h2>
+    <form method="post" @formname="lifecycle" @onsubmit="LifecycleAsync">
+        <AntiforgeryToken />
+        @if (flag.ArchivedAt is null)
+        {
+            <p>Archiving leaves the flag out of every API response, so applications fall back to their default. Remove the flag from code first. Its history stays, and it can be restored.</p>
+            <button type="button" class="button button-danger" popovertarget="archive-flag">Archive flag</button>
+            <div popover id="archive-flag" class="confirm" role="dialog" aria-labelledby="archive-flag-title">
+                <p id="archive-flag-title" class="confirm-title">Archive @flag.Key?</p>
+                <p>API responses leave it out from the next poll.</p>
+                <div class="confirm-actions">
+                    <button type="submit" name="Action" value="archive" class="button button-danger-solid">Archive flag</button>
+                    <button type="button" popovertarget="archive-flag" popovertargetaction="hide" class="button button-quiet">Keep it</button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <p>Restoring puts the flag back in API responses with the values it had. Deleting removes it for good; its change records stay.</p>
+            var servedAgain = flag.Cells.Where(c => c.Enabled && c.Environment.IsProtected).Select(c => c.Environment.Name).ToList();
+            <div class="row-actions row-actions-start">
+                @if (servedAgain.Count == 0)
+                {
+                    <button type="submit" name="Action" value="restore" class="button button-quiet">Restore flag</button>
+                }
+                else
+                {
+                    <button type="button" class="button button-quiet" popovertarget="restore-flag">Restore flag</button>
+                }
+                <button type="button" class="button button-danger" popovertarget="delete-flag">Delete flag</button>
+            </div>
+            @if (servedAgain.Count > 0)
+            {
+                <div popover id="restore-flag" class="confirm" role="dialog" aria-labelledby="restore-flag-title">
+                    <p id="restore-flag-title" class="confirm-title">Restore <span class="key-literal">@flag.Key</span>?</p>
+                    <p>It is on in @string.Join(" and ", servedAgain), which is protected. Applications there read it again within about 35 seconds.</p>
+                    <div class="confirm-actions">
+                        <button type="submit" name="Action" value="restore-confirmed" class="button button-signal">Restore flag</button>
+                        <button type="button" popovertarget="restore-flag" popovertargetaction="hide" class="button button-quiet">Keep it archived</button>
+                    </div>
+                </div>
+            }
+            <div popover id="delete-flag" class="confirm" role="dialog" aria-labelledby="delete-flag-title">
+                <p id="delete-flag-title" class="confirm-title">Delete @flag.Key for good?</p>
+                <p>Its values are deleted. Its change records stay in the history.</p>
+                <div class="confirm-actions">
+                    <button type="submit" name="Action" value="delete" class="button button-danger-solid">Delete flag</button>
+                    <button type="button" popovertarget="delete-flag" popovertargetaction="hide" class="button button-quiet">Keep it</button>
+                </div>
+            </div>
+        }
+    </form>
+</section>
+
+@code {
+    private FlagRow? flag;
+    private DateTime now;
+    private string? message;
+    private NoticeKind kind;
+
+    [Parameter]
+    public string AppKey { get; set; } = "";
+
+    [Parameter]
+    public string FlagKey { get; set; } = "";
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromQuery(Name = "status")]
+    private string? Status { get; set; }
+
+    [SupplyParameterFromForm(FormName = "description")]
+    private string? Description { get; set; }
+
+    [SupplyParameterFromForm(FormName = "lifecycle")]
+    private string? Action { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        now = Time.GetUtcNow().UtcDateTime;
+        flag = await Queries.FlagAsync(AppKey, FlagKey, HttpContext.RequestAborted);
+        if (flag is null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        (message, kind) = Status switch
+        {
+            "saved" => ("Description saved.", NoticeKind.Success),
+            "restored" => ("Flag restored. It is back in API responses, with the values it had.", NoticeKind.Success),
+            _ => (null, NoticeKind.Info),
+        };
+    }
+
+    private async Task SaveDescriptionAsync()
+    {
+        var result = await Flags.EditDescriptionAsync(AppKey, FlagKey, Description, DashboardActor.Of(HttpContext), HttpContext.RequestAborted);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo($"/apps/{AppKey}/flags/{FlagKey}?status=saved");
+            return;
+        }
+
+        Fail(result.Message!);
+    }
+
+    private async Task LifecycleAsync()
+    {
+        var actor = DashboardActor.Of(HttpContext);
+        var result = Action switch
+        {
+            "archive" => await Flags.ArchiveAsync(AppKey, FlagKey, actor, HttpContext.RequestAborted),
+            "restore" or "restore-confirmed" => await Flags.RestoreAsync(AppKey, FlagKey, actor, Action == "restore-confirmed", HttpContext.RequestAborted),
+            "delete" => await Flags.DeleteAsync(AppKey, FlagKey, actor, HttpContext.RequestAborted),
+            _ => CommandResult.Invalid("Unknown action."),
+        };
+        if (!result.Succeeded)
+        {
+            Fail(result.Message!);
+            return;
+        }
+
+        Navigation.NavigateTo(Action switch
+        {
+            "archive" => $"/apps/{AppKey}?status=archived",
+            "restore" or "restore-confirmed" => $"/apps/{AppKey}/flags/{FlagKey}?status=restored",
+            _ => $"/apps/{AppKey}?status=deleted",
+        });
+    }
+
+    private void Fail(string error)
+    {
+        HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+        (message, kind) = (error, NoticeKind.Error);
+    }
+}

@@ -22,3 +22,4 @@ artifacts/
 .impeccable/hook.pending.json
 .impeccable/config.local.json
 .impeccable/live/
+.impeccable/review/

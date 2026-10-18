@@ -1,0 +1,81 @@
+@page "/apps/{AppKey}/confirm"
+@using Palanca.Applications
+@using Palanca.Flags
+@inject BoardQueries Queries
+@inject FlagValueWriter Writer
+@inject NavigationManager Navigation
+
+@* The confirmation for a protected environment as a page (FLG-014), for a toggle that arrived without the board's dialog. *@
+<PageTitle>Confirm a change · Palanca</PageTitle>
+<SectionContent SectionName="@MainLayout.BoardContext"><AppSwitcher Current="@AppKey" /></SectionContent>
+
+@if (application is null || flag is null || cell is null || Value is not ("on" or "off"))
+{
+    <div class="empty">
+        <p class="empty-title">Nothing to confirm</p>
+        <p>That flag or environment does not exist. <a href="/apps/@AppKey">Back to the board</a>.</p>
+    </div>
+    return;
+}
+
+<section class="confirm-page" aria-labelledby="confirm-title">
+    <h1 id="confirm-title">Turn @flag.Key @Value in @cell.Environment.Name?</h1>
+    <dl class="confirm-facts">
+        <div><dt>Application</dt><dd>@application.Name</dd></div>
+        <div><dt>Environment</dt><dd>@cell.Environment.Name <span class="plate">Protected</span></dd></div>
+        <div><dt>Flag</dt><dd>@flag.Key</dd></div>
+        <div><dt>New value</dt><dd><span class="tile@(Value == "on" ? " on" : null)">@Value.ToUpperInvariant()</span></dd></div>
+    </dl>
+    <p>Applications read the new value within about 35 seconds.</p>
+    <form method="post" action="@FormAction" @formname="confirm" @onsubmit="ConfirmAsync" class="confirm-actions">
+        <AntiforgeryToken />
+        <button type="submit" class="button @(Value == "on" ? "button-signal" : "button-danger-solid")">Turn @Value in @cell.Environment.Name</button>
+        <a class="button button-quiet" href="/apps/@AppKey#flag-@flag.Key">Cancel</a>
+    </form>
+</section>
+
+@code {
+    private ApplicationSummary? application;
+    private FlagRow? flag;
+    private FlagCell? cell;
+
+    [Parameter]
+    public string AppKey { get; set; } = "";
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromQuery(Name = "flag")]
+    private string? FlagKey { get; set; }
+
+    [SupplyParameterFromQuery(Name = "env")]
+    private string? EnvironmentKey { get; set; }
+
+    [SupplyParameterFromQuery(Name = "value")]
+    private string? Value { get; set; }
+
+    private string FormAction => "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
+
+    protected override async Task OnInitializedAsync()
+    {
+        application = await Queries.ApplicationAsync(AppKey, HttpContext.RequestAborted);
+        flag = FlagKey is null ? null : await Queries.FlagAsync(AppKey, FlagKey, HttpContext.RequestAborted);
+        cell = flag?.ArchivedAt is null ? flag?.Cells.FirstOrDefault(c => c.Environment.Key == EnvironmentKey) : null;
+        if (application is null || cell is null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+        }
+    }
+
+    private async Task ConfirmAsync()
+    {
+        if (flag is null || cell is null || Value is not ("on" or "off"))
+        {
+            return;
+        }
+
+        var result = await Writer.SetAsync(AppKey, flag.Key, cell.Environment.Key, Value == "on", DashboardActor.Of(HttpContext), confirmed: true, HttpContext.RequestAborted);
+        var flipped = result.Outcome == SetFlagValueOutcome.Changed ? $"?flipped={flag.Key}~{cell.Environment.Key}" : null;
+        Navigation.NavigateTo($"/apps/{AppKey}{flipped}#flag-{flag.Key}");
+    }
+}

@@ -7,7 +7,6 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Time.Testing;
 using Palanca.Data;
 
 namespace Palanca.Tests;
@@ -52,7 +51,7 @@ public sealed class PalancaFactory : WebApplicationFactory<Program>
     public string BackupDirectory => Path.Combine(DataDirectory, "backups");
 
     /// <summary>Replaces the app's clock, for tests of expiry and session limits.</summary>
-    public FakeTimeProvider? Time { get; init; }
+    public TimeProvider? Time { get; init; }
 
     /// <summary>Settings added after the defaults, such as trusted proxies.</summary>
     public IReadOnlyDictionary<string, string?> Settings { get; init; } = new Dictionary<string, string?>();

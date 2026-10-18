@@ -37,11 +37,11 @@ related_targets: ["src/Palanca/Components/Layout/MainLayout.razor","src/Palanca/
   - Fonts are self-hosted.
   - Pages must be usable at phone width.
 
-## Unresolved
+## Decided in the build
 
-- **Protected confirmation:** an HTML `popover` that opens without script, with a server-side confirmation page as the fallback when a protected toggle arrives unconfirmed.
-- **Phone layout of the grid:** proposed as one row per flag, with that flag's environment tiles beneath its key.
-- **Showing the owner as actor:** the PRD records the owner's email as the actor of dashboard changes. Open: whether the grid shows it in full or shortened.
+- **Protected confirmation:** an HTML `popover` dialog naming the application, environment, flag and new value. It opens without script. A protected toggle that arrives unconfirmed goes to a confirmation page instead, and the value writer re-checks protection inside its transaction.
+- **Phone layout of the grid:** one block per flag, with that flag's environment tiles beneath its key, each labelled with its environment and the PROTECTED plate.
+- **Showing the owner as actor:** change records keep the owner's email. The board says "you" for the owner and "token <name>" for management tokens; the header shows the email.
 
 ## Direction contract
 
