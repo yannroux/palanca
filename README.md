@@ -88,7 +88,7 @@ Authorization: Bearer palanca_sdk_...
 
 ## Management tokens
 
-Scripts and AI agents will call the management API with a management token. The API itself comes in the next steps of Phase 2.
+Scripts and AI agents call the management API with a management token.
 
 - **Creating a token:** on the Tokens page, give it a name, a permission, the applications it reaches and an expiry. It is shown once, on the page the form leads to; Palanca stores only its SHA-256 hash and the start of the token, `palanca_mgt_` plus six characters.
 - **Permission:** a read-only token reads flags, values and history. A read-write token can also create flags, edit descriptions and set values in every environment, production included.
@@ -96,6 +96,30 @@ Scripts and AI agents will call the management API with a management token. The 
 - **Expiry:** 30, 90 or 180 days, or 12 months, which is the longest and the default.
 - **Names:** the history records changes made with a token under its name, so two active tokens cannot share one.
 - **Changing a token:** its permission, applications and expiry never change. Create a new token, then revoke the old one. Creating and revoking tokens is recorded in the history.
+
+## Management API
+
+The management API lives under `/api/manage/v1` and takes and returns JSON. Every request needs a management token; reading needs only a read-only one. Writing (creating flags and setting values) comes in the next step of Phase 2.
+
+```http
+GET /api/manage/v1/applications/hogarhero/flags
+Authorization: Bearer palanca_mgt_...
+```
+
+| Method and path | Returns |
+| --- | --- |
+| `GET /applications` | The applications in the token's scope, with their environments, protection and revision |
+| `GET /applications/{app}/flags` | The application's flags, with their description and, per environment, the value, when it last changed and who changed it |
+| `GET /applications/{app}/flags/{flag}` | One flag |
+| `GET /applications/{app}/history` | Change records, newest first, 50 at a time. Filter with `environment` and `flag`; pass the response's `next` as `before` for the next page |
+
+- **Errors:** RFC 9457 problem details (`application/problem+json`).
+  - `401`: the token is missing, unknown, revoked or expired, without saying which. Failed attempts count toward the per-address limit: after 10 failures within a minute, requests from that address get `429`, even with a valid token, until a minute has passed.
+  - `403`: the application is outside the token's scope. A token for chosen applications gets `403` for any other key, whether or not that application exists, and for one of its own once it is archived.
+  - `404`: a token for every application asked for one that does not exist or is archived, a flag that does not exist or is archived, or any other path.
+- **Credentials:** only management tokens work here. SDK keys and the dashboard's session cookie get `401`; a management token opens no dashboard page and gets `401` from the evaluation API.
+- **Archived items:** archived applications, environments and flags are left out of the lists; the history still shows the changes made to them.
+- **Caching and last use:** responses carry `Cache-Control: no-store`. A token's last use is recorded at most once a minute and shown on the Tokens page.
 
 ## Database
 

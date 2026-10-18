@@ -34,7 +34,7 @@ internal static class EvaluationEndpoints
             return Results.StatusCode(StatusCodes.Status429TooManyRequests);
         }
 
-        var key = await FindKeyAsync(db, BearerToken(context.Request), cancellationToken);
+        var key = await FindKeyAsync(db, BearerSecrets.FromRequest(context.Request), cancellationToken);
         if (key is null)
         {
             // Missing, unknown, revoked, or archived: the answer is the same, so it says nothing about which.
@@ -98,12 +98,5 @@ internal static class EvaluationEndpoints
                 && k.Environment.ArchivedAt == null && k.Environment.Application.ArchivedAt == null)
             .ToListAsync(cancellationToken);
         return candidates.Find(k => CryptographicOperations.FixedTimeEquals(k.Hash, presented.Hash));
-    }
-
-    private static string? BearerToken(HttpRequest request)
-    {
-        var authorization = request.Headers.Authorization.ToString();
-        const string Scheme = "Bearer ";
-        return authorization.StartsWith(Scheme, StringComparison.OrdinalIgnoreCase) ? authorization[Scheme.Length..].Trim() : null;
     }
 }

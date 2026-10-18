@@ -1,5 +1,8 @@
 using System.Net;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Palanca.Data;
+using Palanca.ManagementTokens;
 
 namespace Palanca.Tests.Owners;
 
@@ -53,6 +56,25 @@ public sealed class DashboardGateTests(PalancaFactory factory) : IClassFixture<P
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         Assert.StartsWith("/sign-in", DashboardClient.RedirectPath(response), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AManagementTokenOpensNoDashboardRoute()
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var (_, created) = await scope.ServiceProvider.GetRequiredService<ManagementTokenCommands>().CreateAsync(
+            "gate-test", TokenPermission.ReadWrite, allApplications: true, [], 365, new ChangeActor(ChangeSource.Dashboard, OwnerSetup.Email),
+            TestContext.Current.CancellationToken);
+        using var client = new DashboardClient(factory);
+        client.Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", created!.Token);
+
+        foreach (var path in new[] { "/", "/tokens" })
+        {
+            using var response = await client.Http.GetAsync(path, TestContext.Current.CancellationToken);
+
+            Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+            Assert.StartsWith("/sign-in", DashboardClient.RedirectPath(response), StringComparison.Ordinal);
+        }
     }
 
     [Fact]

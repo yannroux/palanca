@@ -7,6 +7,7 @@ using Palanca.Data;
 using Palanca.Evaluation;
 using Palanca.Flags;
 using Palanca.History;
+using Palanca.Management;
 using Palanca.ManagementTokens;
 using Palanca.Owners;
 using Palanca.SdkKeys;
@@ -38,6 +39,7 @@ builder.Services.AddScoped<BoardQueries>();
 builder.Services.AddScoped<HistoryQueries>();
 builder.Services.AddScoped<SdkKeyCommands>();
 builder.Services.AddScoped<ManagementTokenCommands>();
+builder.Services.AddScoped<ManagementQueries>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<NewSecretHandoff>();
 builder.Services.AddClientAddress();
@@ -61,6 +63,7 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check 
 app.MapStaticAssets().AllowAnonymous();
 app.MapOwnerEndpoints();
 app.MapEvaluationEndpoints();
+app.MapManagementEndpoints();
 app.MapRazorComponents<App>();
 
 await app.RunAsync();
