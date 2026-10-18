@@ -79,6 +79,7 @@ internal sealed class FlagValueWriter(PalancaDbContext db, TimeProvider timeProv
             OccurredAt = now,
             Source = actor.Source,
             Actor = actor.Name,
+            TokenId = actor.TokenId,
             Action = ChangeAction.FlagValueSet,
             ApplicationId = environment.ApplicationId,
             ApplicationKey = applicationKey,

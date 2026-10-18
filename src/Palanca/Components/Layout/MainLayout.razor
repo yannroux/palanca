@@ -6,6 +6,7 @@
     <nav class="board-nav" aria-label="Main">
         <a href="/" class="@Active(Section.Applications)" aria-current="@Current(Section.Applications)">Applications</a>
         <a href="/history" class="@Active(Section.History)" aria-current="@Current(Section.History)">History</a>
+        <a href="/tokens" class="@Active(Section.Tokens)" aria-current="@Current(Section.Tokens)">Tokens</a>
         <a href="/passkeys" class="@Active(Section.Passkeys)" aria-current="@Current(Section.Passkeys)">Passkeys</a>
     </nav>
     <div class="board-owner">
@@ -32,6 +33,7 @@
     {
         Applications,
         History,
+        Tokens,
         Passkeys,
     }
 
@@ -43,6 +45,7 @@
             return path switch
             {
                 "/history" => Section.History,
+                "/tokens" => Section.Tokens,
                 "/passkeys" => Section.Passkeys,
                 _ => Section.Applications,
             };

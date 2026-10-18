@@ -1,7 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Palanca.Data;
+using Palanca.Security;
 
 namespace Palanca.SdkKeys;
+
+/// <summary>A key just created, on its way to the page that shows it once.</summary>
+internal sealed record NewKey(string ApplicationKey, string Name, string EnvironmentName, string Key);
 
 /// <summary>Creates and revokes SDK keys (FLG-020 to FLG-022), each change recorded in its transaction (FLG-042).</summary>
 internal sealed class SdkKeyCommands(PalancaDbContext db, TimeProvider timeProvider)
@@ -24,7 +28,7 @@ internal sealed class SdkKeyCommands(PalancaDbContext db, TimeProvider timeProvi
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        var (key, prefix, hash) = SdkKeySecrets.Create();
+        var (key, prefix, hash) = BearerSecrets.SdkKeys.Create();
         db.SdkKeys.Add(new SdkKey { EnvironmentId = environment.Id, Name = cleanName, Prefix = prefix, Hash = hash, CreatedAt = now });
         db.Record(actor, ChangeAction.SdkKeyCreated, now, environment.Application, environment, newValue: $"{cleanName} ({prefix})");
         await db.SaveChangesAsync(cancellationToken);

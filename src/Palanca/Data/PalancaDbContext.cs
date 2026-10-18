@@ -16,6 +16,7 @@ internal sealed class PalancaDbContext(DbContextOptions<PalancaDbContext> option
     public DbSet<Flag> Flags => Set<Flag>();
     public DbSet<FlagValue> FlagValues => Set<FlagValue>();
     public DbSet<SdkKey> SdkKeys => Set<SdkKey>();
+    public DbSet<ManagementToken> ManagementTokens => Set<ManagementToken>();
     public DbSet<ChangeRecord> ChangeRecords => Set<ChangeRecord>();
     public DbSet<Owner> Owners => Set<Owner>();
     public DbSet<OwnerPasskey> OwnerPasskeys => Set<OwnerPasskey>();
@@ -69,6 +70,19 @@ internal sealed class PalancaDbContext(DbContextOptions<PalancaDbContext> option
             key.Property(k => k.Prefix).HasMaxLength(32);
             key.HasIndex(k => k.Prefix);
             key.HasOne(k => k.Environment).WithMany().OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ManagementToken>(token =>
+        {
+            token.Property(t => t.Name).HasMaxLength(NameMaxLength);
+            token.Property(t => t.Prefix).HasMaxLength(32);
+            token.Property(t => t.Permission).HasConversion<string>().HasMaxLength(16);
+            token.HasIndex(t => t.Prefix);
+            // Applications are archived, never deleted, so a token's scope keeps naming them.
+            token.HasMany(t => t.Applications).WithMany().UsingEntity(
+                "ManagementTokenApplications",
+                application => application.HasOne(typeof(Application)).WithMany().HasForeignKey("ApplicationId").OnDelete(DeleteBehavior.Restrict),
+                scopedToken => scopedToken.HasOne(typeof(ManagementToken)).WithMany().HasForeignKey("TokenId").OnDelete(DeleteBehavior.Cascade));
         });
 
         modelBuilder.Entity<ChangeRecord>(record =>

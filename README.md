@@ -58,7 +58,7 @@ In development:
   - restoring an archived flag that is on there asks first;
   - unprotecting the environment asks first.
 - **Retiring a flag:** a flag starts off everywhere unless it is created with initial values. Archiving it moves it off the board, with its history kept; restoring brings it back with its values, and only an archived flag can be deleted.
-- **History:** every change to applications, environments, flags, values, SDK keys and the owner's passkeys is recorded, with when, where, and who made it: the owner in the dashboard, a host command, or, from Phase 2, a management token through the API. The History page lists the records newest first, 50 at a time, and filters them by application, environment, flag and source; a description change shows the old and the new text. Changes made through the API stand out with a solid plate and the token's name in bold. The database refuses any statement that edits, replaces or deletes a record.
+- **History:** every change to applications, environments, flags, values, SDK keys, management tokens and the owner's passkeys is recorded, with when, where, and who made it: the owner in the dashboard, a host command, or, from Phase 2, a management token through the API. The History page lists the records newest first, 50 at a time, and filters them by application, environment, flag and source; a description change shows the old and the new text. Changes made through the API stand out with a solid plate and the token's name in bold. The database refuses any statement that edits, replaces or deletes a record.
 
 ## SDK keys and the evaluation API
 
@@ -85,6 +85,17 @@ Authorization: Bearer palanca_sdk_...
 - **Revisions:** they change whenever a value changes, and when a flag is created, archived or restored.
 - **Failures:** a missing, unknown or revoked key gets `401` without saying which. Failed attempts count toward the per-address limit (`Palanca:FailedAuthentication:PermitLimit`), and beyond it requests get `429`.
 - **Access:** consumers call the API over plain HTTP; it needs neither HTTPS nor the dashboard's cookies. It is meant for the private Docker networks, and the deployment's public route, which is outside this repository, does not expose it.
+
+## Management tokens
+
+Scripts and AI agents will call the management API with a management token. The API itself comes in the next steps of Phase 2.
+
+- **Creating a token:** on the Tokens page, give it a name, a permission, the applications it reaches and an expiry. It is shown once, on the page the form leads to; Palanca stores only its SHA-256 hash and the start of the token, `palanca_mgt_` plus six characters.
+- **Permission:** a read-only token reads flags, values and history. A read-write token can also create flags, edit descriptions and set values in every environment, production included.
+- **Applications:** either chosen applications, or all of them, including applications registered after the token.
+- **Expiry:** 30, 90 or 180 days, or 12 months, which is the longest and the default.
+- **Names:** the history records changes made with a token under its name, so two active tokens cannot share one.
+- **Changing a token:** its permission, applications and expiry never change. Create a new token, then revoke the old one. Creating and revoking tokens is recorded in the history.
 
 ## Database
 

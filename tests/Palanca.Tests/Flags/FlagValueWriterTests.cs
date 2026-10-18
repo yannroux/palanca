@@ -53,6 +53,7 @@ public sealed class FlagValueWriterTests : IAsyncLifetime
             Assert.Equal(ChangeAction.FlagValueSet, record.Action);
             Assert.Equal(ChangeSource.Dashboard, record.Source);
             Assert.Equal("owner@example.com", record.Actor);
+            Assert.Null(record.TokenId);
             Assert.Equal(_time.GetUtcNow().UtcDateTime, record.OccurredAt);
             Assert.Equal(("hogarhero", "staging", "new-search"), (record.ApplicationKey, record.EnvironmentKey, record.FlagKey));
             Assert.Equal(("off", "on"), (record.OldValue, record.NewValue));
@@ -87,6 +88,18 @@ public sealed class FlagValueWriterTests : IAsyncLifetime
         Assert.Equal(new SetFlagValueResult(SetFlagValueOutcome.Changed, 2), result);
         var last = await _factory.WithDbAsync(db => db.ChangeRecords.OrderBy(r => r.Id).LastAsync(TestContext.Current.CancellationToken));
         Assert.Equal(("on", "off"), (last.OldValue, last.NewValue));
+    }
+
+    [Fact]
+    public async Task AnApiChangeRecordsTheTokenThatMadeIt()
+    {
+        var token = new ChangeActor(ChangeSource.Api, "claude-hogarhero", TokenId: 7);
+
+        await _factory.WithDbAsync(db => new FlagValueWriter(db, _time)
+            .SetAsync("hogarhero", "new-search", "staging", true, token, confirmed: true, TestContext.Current.CancellationToken));
+
+        var record = await _factory.WithDbAsync(db => db.ChangeRecords.SingleAsync(TestContext.Current.CancellationToken));
+        Assert.Equal((ChangeSource.Api, "claude-hogarhero", (int?)7), (record.Source, record.Actor, record.TokenId));
     }
 
     [Fact]

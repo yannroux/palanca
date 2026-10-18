@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using Palanca.Data;
 using Palanca.Flags;
+using Palanca.ManagementTokens;
 
 namespace Palanca.Tests.Browser;
 
@@ -82,6 +83,36 @@ public sealed class DashboardJourneyTests : IAsyncLifetime
         await Assertions.Expect(page.Locator(".history-sentence").Nth(2)).ToHaveTextAsync("Turned new-search on in staging");
         Assert.DoesNotContain(key, await page.ContentAsync(), StringComparison.Ordinal);
 
+        // A read-write token for an agent, scoped to the application, shown once, then revoked.
+        await page.GetByRole(AriaRole.Navigation).GetByRole(AriaRole.Link, new() { Name = "Tokens" }).ClickAsync();
+        await page.WaitForURLAsync($"{origin}/tokens");
+        await page.GetByRole(AriaRole.Textbox, new() { Name = "Name", Exact = true }).FillAsync("claude-hogarhero");
+        await page.GetByLabel("Read-write").CheckAsync();
+        await page.GetByRole(AriaRole.Checkbox, new() { Name = "HogarHero", Exact = true }).CheckAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Create token" }).ClickAsync();
+        var token = page.Locator("code.secret");
+        await Assertions.Expect(token).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("^palanca_mgt_[A-Za-z0-9_-]{43}$"));
+        await BrowserHost.ScreenshotAsync(page, "tokens-created");
+        var tokenValue = (await token.TextContentAsync())!;
+        await page.GotoAsync("/tokens");
+        await Assertions.Expect(page.Locator("code.secret")).ToHaveCountAsync(0);
+        var row = page.Locator("tbody tr", new() { HasText = "claude-hogarhero" });
+        var cells = row.Locator("td");
+        await Assertions.Expect(cells.Nth(1)).ToHaveTextAsync($"{tokenValue[..18]}…");
+        await Assertions.Expect(cells.Nth(2)).ToHaveTextAsync("Read-write");
+        await Assertions.Expect(cells.Nth(3)).ToHaveTextAsync("HogarHero");
+        await Assertions.Expect(cells.Nth(6)).ToHaveTextAsync("Never");
+        await row.GetByRole(AriaRole.Button, new() { Name = "Revoke", Exact = true }).ClickAsync();
+        var revokeDialog = page.GetByRole(AriaRole.Dialog);
+        await Assertions.Expect(revokeDialog).ToContainTextAsync("Revoke claude-hogarhero?");
+        await BrowserHost.ScreenshotAsync(page, "tokens-revoke");
+        await revokeDialog.GetByRole(AriaRole.Button, new() { Name = "Revoke token" }).ClickAsync();
+        await page.WaitForURLAsync($"{origin}/tokens?status=revoked");
+        await Assertions.Expect(row.Locator(".cell-status")).ToHaveTextAsync("Revoked just now");
+        await page.GotoAsync("/history");
+        await Assertions.Expect(page.Locator(".history-sentence").Nth(0)).ToHaveTextAsync($"Revoked the management token claude-hogarhero ({tokenValue[..18]})");
+        Assert.DoesNotContain(tokenValue, await page.ContentAsync(), StringComparison.Ordinal);
+
         Assert.Empty(sockets);
 
         await CaptureReviewScreensAsync(page);
@@ -137,6 +168,10 @@ public sealed class DashboardJourneyTests : IAsyncLifetime
             await writer.SetAsync("hogarhero", "provider-onboarding-v2", "staging", true, new ChangeActor(ChangeSource.Api, "claude-staging"), confirmed: true, ct);
             Assert.True((await flags.CreateAsync("hogarhero", "legacy-search", "Old search page, replaced by new-search", [], owner, ct)).Succeeded);
             Assert.True((await flags.ArchiveAsync("hogarhero", "legacy-search", owner, ct)).Succeeded);
+
+            var tokens = scope.ServiceProvider.GetRequiredService<ManagementTokenCommands>();
+            Assert.True((await tokens.CreateAsync("claude-staging", TokenPermission.ReadWrite, false, ["hogarhero"], 365, owner, ct)).Result.Succeeded);
+            Assert.True((await tokens.CreateAsync("ci-flag-audit", TokenPermission.ReadOnly, true, [], 90, owner, ct)).Result.Succeeded);
         }
 
         // A different URL from the current one, so the page really reloads; then the flip has time to finish.
@@ -178,6 +213,7 @@ public sealed class DashboardJourneyTests : IAsyncLifetime
             ("/apps/hogarhero/flags/new", "new-flag"),
             ("/apps/hogarhero/flags/quote-pdf-export", "flag"),
             ("/apps/hogarhero/confirm?flag=map-view-results&env=production&value=on", "confirm-page"),
+            ("/tokens", "tokens"),
         })
         {
             await page.GotoAsync(path);
@@ -187,6 +223,8 @@ public sealed class DashboardJourneyTests : IAsyncLifetime
         await page.SetViewportSizeAsync(390, 844);
         await page.GotoAsync("/");
         await BrowserHost.ScreenshotAsync(page, "home-mobile");
+        await page.GotoAsync("/tokens");
+        await BrowserHost.ScreenshotAsync(page, "tokens-mobile");
     }
 
     public async ValueTask DisposeAsync()

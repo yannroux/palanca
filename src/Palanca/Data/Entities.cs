@@ -82,6 +82,45 @@ internal sealed class SdkKey
     public DateTime? RevokedAt { get; set; }
 }
 
+/// <summary>What a management token may do with the flags of the applications in its scope (FLG-082).</summary>
+internal enum TokenPermission
+{
+    /// <summary>Read flags, values, and history.</summary>
+    ReadOnly,
+
+    /// <summary>Also create flags, edit descriptions, and set values in every environment, production included.</summary>
+    ReadWrite,
+}
+
+/// <summary>
+/// A secret that lets a script or AI agent call the management API. Its permission and application scope are fixed at
+/// creation, and it expires after at most 12 months (FLG-083).
+/// </summary>
+internal sealed class ManagementToken
+{
+    public const int MaxLifetimeDays = 365;
+
+    public int Id { get; set; }
+    public required string Name { get; set; }
+
+    /// <summary>The visible start of the token, used to find candidates before comparing hashes.</summary>
+    public required string Prefix { get; set; }
+
+    /// <summary>SHA-256 of the full token. The token itself is never stored.</summary>
+    public required byte[] Hash { get; set; }
+
+    public TokenPermission Permission { get; set; }
+
+    /// <summary>Whether the token covers every application, including ones registered after it. Otherwise it covers <see cref="Applications"/>.</summary>
+    public bool AllApplications { get; set; }
+
+    public List<Application> Applications { get; } = [];
+    public DateTime CreatedAt { get; set; }
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? LastUsedAt { get; set; }
+    public DateTime? RevokedAt { get; set; }
+}
+
 /// <summary>
 /// An append-only record of one change. It keeps the keys of what it describes, without
 /// foreign keys, so history survives the permanent deletion of an archived flag.
@@ -92,6 +131,10 @@ internal sealed class ChangeRecord
     public DateTime OccurredAt { get; set; }
     public ChangeSource Source { get; set; }
     public required string Actor { get; set; }
+
+    /// <summary>The management token that made an API change, which tells apart tokens that share a name.</summary>
+    public int? TokenId { get; set; }
+
     public ChangeAction Action { get; set; }
     public int? ApplicationId { get; set; }
     public string? ApplicationKey { get; set; }
@@ -133,6 +176,8 @@ internal enum ChangeAction
     PasskeyRegistered,
     PasskeyRenamed,
     PasskeyRemoved,
+    ManagementTokenCreated,
+    ManagementTokenRevoked,
 }
 
 /// <summary>The one person who signs in to the dashboard. Created and recovered only from the host (FLG-046).</summary>
