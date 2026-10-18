@@ -41,6 +41,14 @@ internal sealed class BearerSecrets
         return (PrefixOf(secret), Hash(secret));
     }
 
+    /// <summary>The credential in a request's <c>Authorization: Bearer</c> header, or null when it has none.</summary>
+    public static string? FromRequest(HttpRequest request)
+    {
+        var authorization = request.Headers.Authorization.ToString();
+        const string Scheme = "Bearer ";
+        return authorization.StartsWith(Scheme, StringComparison.OrdinalIgnoreCase) ? authorization[Scheme.Length..].Trim() : null;
+    }
+
     private string PrefixOf(string secret) => secret[..(Marker.Length + VisibleRandomCharacters)];
 
     private static byte[] Hash(string secret) => SHA256.HashData(System.Text.Encoding.ASCII.GetBytes(secret));

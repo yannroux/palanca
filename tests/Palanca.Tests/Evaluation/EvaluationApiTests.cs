@@ -7,6 +7,7 @@ using Microsoft.Extensions.Time.Testing;
 using Palanca.Applications;
 using Palanca.Data;
 using Palanca.Flags;
+using Palanca.ManagementTokens;
 using Palanca.SdkKeys;
 using Palanca.Tests.Owners;
 
@@ -125,6 +126,18 @@ public sealed class EvaluationApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.Equal("Bearer", Assert.Single(response.Headers.WwwAuthenticate).Scheme);
         Assert.Empty(await response.Content.ReadAsByteArrayAsync(Ct));
+    }
+
+    [Fact]
+    public async Task AManagementTokenIsUnauthorizedHere()
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var (_, created) = await scope.ServiceProvider.GetRequiredService<ManagementTokenCommands>()
+            .CreateAsync("agent", TokenPermission.ReadWrite, allApplications: true, [], 365, Owner, Ct);
+
+        using var response = await GetFlagsAsync(created!.Token);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]

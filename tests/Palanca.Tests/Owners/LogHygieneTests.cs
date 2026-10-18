@@ -84,6 +84,10 @@ public sealed class LogHygieneTests
             var managementToken = Regex.Match(shownPage.Html, "palanca_mgt_[A-Za-z0-9_-]{43}").Value;
             Assert.NotEmpty(managementToken);
             secrets.Add(managementToken);
+            using var api = factory.CreateClient();
+            api.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", managementToken);
+            (await api.GetAsync("/api/manage/v1/applications/hogarhero/flags", TestContext.Current.CancellationToken)).Dispose();
+            (await api.GetAsync("/api/manage/v1/applications/hogarhero/history", TestContext.Current.CancellationToken)).Dispose();
         }
 
         secrets.Add(client.Cookie("__Host-Palanca.Session")!.Value);
