@@ -164,6 +164,107 @@ public sealed class StartupTests
     }
 
     [Fact]
+    public void DurationsOverTheirMaximumAreLowered()
+    {
+        // A plain number binds as days.
+        var configuration = ClientConfiguration.From(new PalancaOptions
+        {
+            Endpoint = new Uri("http://palanca:8080"),
+            SdkKey = ClientHarness.SdkKey,
+            Application = "hogarhero",
+            Environment = "production",
+            PollInterval = TimeSpan.FromDays(30),
+            StartupWait = TimeSpan.FromDays(2),
+            StaleAfter = TimeSpan.FromHours(2),
+        });
+
+        Assert.Equal((TimeSpan.FromHours(1), TimeSpan.FromSeconds(30)), (configuration.Settings!.PollInterval, configuration.Settings.StartupWait));
+        Assert.Equal(
+            [
+                "PollInterval 30.00:00:00 is over the maximum, so the client polls every 01:00:00",
+                "StartupWait 2.00:00:00 is over the maximum, so startup waits at most 00:00:30",
+            ],
+            configuration.Adjustments);
+    }
+
+    [Theory]
+    [InlineData("Palanca:PollInterval", "abc")]
+    [InlineData("Palanca:Endpoint", "http://palanca:port")]
+    public async Task SettingsThatCannotBeReadLeaveTheClientUnconfiguredWithoutFailingStartup(string key, string value)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings());
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Palanca:Endpoint"] = "http://palanca:8080",
+            ["Palanca:SdkKey"] = ClientHarness.SdkKey,
+            ["Palanca:Application"] = "hogarhero",
+            ["Palanca:Environment"] = "production",
+            [key] = value,
+        });
+        builder.Logging.AddFakeLogging();
+        builder.Services.AddPalanca(builder.Configuration.GetSection(PalancaOptions.SectionName));
+        using var host = builder.Build();
+
+        await host.StartAsync(Ct);
+
+        Assert.True(host.Services.GetRequiredService<IPalancaFlags>().IsEnabled("new-search", defaultValue: true));
+        var error = Assert.Single(host.Services.GetFakeLogCollector().GetSnapshot(), record => record.Level == LogLevel.Error);
+        Assert.StartsWith(
+            $"Palanca is not configured, so every flag reads its code default: its settings could not be read (Failed to convert configuration value",
+            error.Message,
+            StringComparison.Ordinal);
+        Assert.Contains($"'{key}'", error.Message, StringComparison.Ordinal);
+        await host.StopAsync(Ct);
+    }
+
+    [Fact]
+    public async Task ALogSinkThatThrowsStopsNeitherStartupNorPolling()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings());
+        builder.Logging.AddProvider(new ThrowingProvider(PalancaMetrics.MeterName));
+        builder.Services.AddPalanca(options =>
+        {
+            options.Endpoint = new Uri("http://palanca:8080");
+            options.SdkKey = ClientHarness.SdkKey;
+            options.Application = "hogarhero";
+            options.Environment = "production";
+            options.PollInterval = TimeSpan.FromMilliseconds(1);
+            options.StartupWait = TimeSpan.FromMilliseconds(100);
+        });
+        var service = new FakeService();
+        builder.Services.ConfigureHttpClientDefaults(http => http.ConfigurePrimaryHttpMessageHandler(() => service));
+        using var host = builder.Build();
+
+        // Starting logs the adjusted poll interval, each failure logs, and so does the startup wait.
+        await host.StartAsync(Ct);
+        await ClientHarness.WaitUntilAsync(() => service.Requests.Count >= 3);
+
+        Assert.False(host.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping.IsCancellationRequested);
+        Assert.False(host.Services.GetRequiredService<IPalancaFlags>().IsEnabled("new-search", defaultValue: false));
+        await host.StopAsync(Ct);
+    }
+
+    private sealed class ThrowingProvider(string category) : ILoggerProvider
+    {
+        public ILogger CreateLogger(string categoryName) => categoryName == category ? new ThrowingLogger() : Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
+
+        public void Dispose()
+        {
+        }
+
+        private sealed class ThrowingLogger : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state)
+                where TState : notnull => throw new InvalidOperationException("The log sink is down.");
+
+            public bool IsEnabled(LogLevel logLevel) => true;
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+                throw new InvalidOperationException("The log sink is down.");
+        }
+    }
+
+    [Fact]
     public void TheClientBindsFromConfiguration()
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>

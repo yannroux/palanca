@@ -138,9 +138,9 @@ public sealed class ClientIntegrationTests : IAsyncLifetime
         });
         builder.Services.AddHealthChecks().AddPalanca();
         var statuses = new ConcurrentQueue<HttpStatusCode>();
+        // The client drops handlers added to every client, so the recorder wraps the primary handler instead.
         builder.Services.ConfigureHttpClientDefaults(http => http
-            .ConfigurePrimaryHttpMessageHandler(() => _factory.Server.CreateHandler())
-            .AddHttpMessageHandler(() => new StatusRecorder(statuses)));
+            .ConfigurePrimaryHttpMessageHandler(() => new StatusRecorder(statuses) { InnerHandler = _factory.Server.CreateHandler() }));
         var host = builder.Build();
         _hosts.Add(host);
 

@@ -14,12 +14,12 @@ internal sealed class PalancaHealthCheck(ClientState state, ClientConfiguration 
         var current = state.Current;
         if (configuration.Settings is not { } settings)
         {
-            return Task.FromResult(HealthCheckResult.Degraded($"Every flag reads its code default. {current.Problem}."));
+            return Task.FromResult(HealthCheckResult.Degraded($"Every flag reads its code default. {Sentence(current.Problem)}"));
         }
 
         if (current is not { Snapshot: { } snapshot, LastSuccess: { } lastSuccess })
         {
-            return Task.FromResult(HealthCheckResult.Degraded($"No flags from Palanca yet, so every flag reads its code default. {current.Problem}."));
+            return Task.FromResult(HealthCheckResult.Degraded($"No flags from Palanca yet, so every flag reads its code default. {Sentence(current.Problem)}"));
         }
 
         var age = time.GetUtcNow() - lastSuccess;
@@ -28,10 +28,13 @@ internal sealed class PalancaHealthCheck(ClientState state, ClientConfiguration 
             ["revision"] = snapshot.Revision,
             ["lastSuccess"] = lastSuccess.ToString("O", CultureInfo.InvariantCulture),
         };
-        var lastFailure = current.Problem is null ? "" : $" The last sync failed: {current.Problem}.";
+        var lastFailure = current.Problem is null ? "" : $" The last sync failed: {Sentence(current.Problem)}";
         var summary = $"Serving revision {snapshot.Revision}, synced {Math.Floor(age.TotalSeconds).ToString(CultureInfo.InvariantCulture)} seconds ago.{lastFailure}";
         return Task.FromResult(age > settings.StaleAfter
             ? HealthCheckResult.Degraded($"The flags are stale. {summary}", data: data)
             : HealthCheckResult.Healthy(summary, data));
     }
+
+    // Problems can be exception messages, which may already end with a full stop.
+    private static string Sentence(string? problem) => $"{problem?.TrimEnd('.')}.";
 }

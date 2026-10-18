@@ -1,5 +1,7 @@
 using System.Net;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Palanca.Client.Tests;
@@ -136,6 +138,63 @@ public sealed class SyncTests
         Assert.Equal(
             "Could not sync flags from Palanca (Palanca answered 401 Unauthorized); serving the flags of revision 1 and retrying, without logging again until a sync succeeds",
             Assert.Single(client.LogsAtLeast(LogLevel.Warning)).Message);
+    }
+
+    [Theory]
+    [InlineData("headers")]
+    [InlineData("body")]
+    public async Task ASyncWithoutACompleteAnswerInTimeFailsAndKeepsTheValues(string stalled)
+    {
+        await using var client = ClientHarness.Create(requestTimeout: TimeSpan.FromMilliseconds(200));
+        client.Service.Flags(1, """{"new-search":true}""");
+        _ = stalled == "headers" ? client.Service.ThenHang() : client.Service.ThenStallTheBody();
+        await client.StartAsync();
+
+        await client.AdvanceToNextAttemptAsync(Poll);
+
+        Assert.True(client.Flags.IsEnabled("new-search", defaultValue: false));
+        Assert.Equal(
+            "Could not sync flags from Palanca (no complete answer within 0.2 seconds); serving the flags of revision 1 and retrying, without logging again until a sync succeeds",
+            Assert.Single(client.LogsAtLeast(LogLevel.Warning)).Message);
+    }
+
+    [Fact]
+    public async Task HandlersAddedToEveryClientAreLeftOutOfThisOne()
+    {
+        var service = new FakeService().Flags(1, "{}");
+        service.Otherwise(() => new HttpResponseMessage(HttpStatusCode.OK));
+        var handled = 0;
+        var services = new ServiceCollection().AddLogging().AddPalanca(options =>
+        {
+            options.Endpoint = new Uri("http://palanca:8080");
+            options.SdkKey = ClientHarness.SdkKey;
+            options.Application = "hogarhero";
+            options.Environment = "production";
+        });
+        services.ConfigureHttpClientDefaults(http => http
+            .ConfigurePrimaryHttpMessageHandler(() => service)
+            .AddHttpMessageHandler(() => new CountingHandler(() => Interlocked.Increment(ref handled))));
+        await using var provider = services.BuildServiceProvider();
+        var sync = provider.GetServices<IHostedService>().OfType<PalancaSync>().Single();
+
+        await sync.StartAsync(Ct);
+        await ClientHarness.WaitUntilAsync(() => sync.Attempts > 0);
+        // Another client still gets the shared handler, which shows the count would see the client's request.
+        using var other = provider.GetRequiredService<IHttpClientFactory>().CreateClient("other");
+        using var response = await other.GetAsync(new Uri("http://palanca:8080/"), Ct);
+        await sync.StopAsync(Ct);
+
+        Assert.Equal(2, service.Requests.Count);
+        Assert.Equal(1, handled);
+    }
+
+    private sealed class CountingHandler(Action count) : DelegatingHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            count();
+            return base.SendAsync(request, cancellationToken);
+        }
     }
 
     [Theory]

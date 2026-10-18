@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Options;
 using Palanca.Client;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -32,14 +31,18 @@ public static class PalancaServiceCollectionExtensions
     {
         services.AddMetrics();
         services.TryAddSingleton(TimeProvider.System);
-        services.TryAddSingleton(provider => ClientConfiguration.From(provider.GetRequiredService<IOptions<PalancaOptions>>().Value));
+        services.TryAddSingleton(ClientConfiguration.Read);
         services.TryAddSingleton<ClientState>();
         services.TryAddSingleton<ClientMetrics>();
         services.TryAddSingleton<IPalancaFlags, PalancaFlags>();
         services.TryAddSingleton<PalancaHealthCheck>();
 
-        // The client logs once per outage itself, so the factory's per-request logs would only repeat each poll.
-        services.AddHttpClient(PalancaSync.HttpClientName, http => http.Timeout = PalancaSync.RequestTimeout).RemoveAllLoggers();
+        // Each sync sets its own deadline, which also covers reading the body. The client retries and logs once per
+        // outage itself, so the handlers an application adds to every client, such as retries, and the factory's
+        // per-request logs are left out of this one.
+        services.AddHttpClient(PalancaSync.HttpClientName, http => http.Timeout = Timeout.InfiniteTimeSpan)
+            .ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear())
+            .RemoveAllLoggers();
         services.AddHostedService<PalancaSync>();
         return services;
     }

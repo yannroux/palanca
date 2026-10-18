@@ -9,8 +9,11 @@ internal sealed partial class PalancaFlags(ClientState state, ClientConfiguratio
     // Bounds the memory spent remembering warned keys, in case keys are built at run time.
     internal const int MaxWarnedKeys = 1000;
 
-    private readonly ILogger _logger = loggerFactory.CreateLogger(PalancaMetrics.MeterName);
+    private readonly ILogger _logger = new SafeLogger(loggerFactory.CreateLogger(PalancaMetrics.MeterName));
     private readonly ConcurrentDictionary<string, bool> _warnedKeys = new(StringComparer.Ordinal);
+
+    // Counted apart from the dictionary, whose Count takes every lock: a hot read of a deleted flag must stay cheap.
+    private int _warnedCount;
 
     public bool IsEnabled(string key, bool defaultValue)
     {
@@ -27,8 +30,9 @@ internal sealed partial class PalancaFlags(ClientState state, ClientConfiguratio
                 return enabled;
             }
 
-            if (_warnedKeys.Count < MaxWarnedKeys && _warnedKeys.TryAdd(key, true))
+            if (!_warnedKeys.ContainsKey(key) && Volatile.Read(ref _warnedCount) < MaxWarnedKeys && _warnedKeys.TryAdd(key, true))
             {
+                Interlocked.Increment(ref _warnedCount);
                 LogUnknownFlag(_logger, key, configuration.Settings?.Application, configuration.Settings?.Environment, defaultValue);
             }
 
@@ -36,7 +40,7 @@ internal sealed partial class PalancaFlags(ClientState state, ClientConfiguratio
         }
         catch (Exception)
         {
-            // A read must never fail the caller, even if a log provider throws.
+            // A read must never fail the caller.
             return defaultValue;
         }
     }

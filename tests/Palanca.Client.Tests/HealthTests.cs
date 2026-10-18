@@ -60,6 +60,18 @@ public sealed class HealthTests
     }
 
     [Fact]
+    public async Task AProblemThatEndsWithAFullStopIsNotDoubled()
+    {
+        await using var client = ClientHarness.Create(options => options.StartupWait = TimeSpan.Zero);
+        client.Service.Then(() => throw new HttpRequestException("Name or service not known."));
+        await client.StartAsync();
+
+        Assert.Equal(
+            "No flags from Palanca yet, so every flag reads its code default. Name or service not known.",
+            (await client.CheckHealthAsync()).Description);
+    }
+
+    [Fact]
     public async Task TheStaleThresholdIsConfigurable()
     {
         await using var client = ClientHarness.Create(options => options.StaleAfter = TimeSpan.FromMinutes(1));

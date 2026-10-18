@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -18,8 +19,8 @@ internal sealed partial class ClientJsonContext : JsonSerializerContext;
 
 /// <summary>
 /// Polls <c>GET /api/v1/flags</c> and swaps in each new snapshot (FLG-051 to FLG-053). Failures keep the snapshot
-/// already served and are logged once per outage. Nothing escapes the loop, because an exception leaving a hosted
-/// service stops the host.
+/// already served and are logged once per outage. Nothing escapes the loop, logs included, because an exception
+/// leaving a hosted service stops the host.
 /// </summary>
 internal sealed partial class PalancaSync(
     ClientConfiguration configuration,
@@ -30,10 +31,9 @@ internal sealed partial class PalancaSync(
     ILoggerFactory loggerFactory) : BackgroundService
 {
     public const string HttpClientName = "Palanca.Client";
-    public static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan FirstRetry = TimeSpan.FromSeconds(1);
 
-    private readonly ILogger _logger = loggerFactory.CreateLogger(PalancaMetrics.MeterName);
+    private readonly ILogger _logger = new SafeLogger(loggerFactory.CreateLogger(PalancaMetrics.MeterName));
     private readonly TaskCompletionSource _firstSnapshot = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int _attempts;
     private int _failures;
@@ -87,7 +87,16 @@ internal sealed partial class PalancaSync(
         var settings = configuration.Settings!;
         while (!stoppingToken.IsCancellationRequested)
         {
-            var succeeded = await SyncAsync(settings, stoppingToken);
+            bool succeeded;
+            try
+            {
+                succeeded = await SyncAsync(settings, stoppingToken);
+            }
+            catch (Exception)
+            {
+                // Such as a metrics listener that throws: the snapshot stays and the loop goes on.
+                succeeded = false;
+            }
 
             // Scheduled before the attempt is counted, so a test clock advanced on seeing the count also fires it.
             var next = Task.Delay(succeeded ? settings.PollInterval : Backoff(_failures, settings.PollInterval), time, stoppingToken);
@@ -113,6 +122,10 @@ internal sealed partial class PalancaSync(
     private async Task<bool> SyncAsync(ClientSettings settings, CancellationToken stoppingToken)
     {
         var current = state.Current;
+
+        // One deadline for the whole sync: a response whose body stalls would otherwise hold the loop forever.
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+        deadline.CancelAfter(settings.RequestTimeout);
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, settings.FlagsAddress);
@@ -123,7 +136,7 @@ internal sealed partial class PalancaSync(
             }
 
             using var http = httpClientFactory.CreateClient(HttpClientName);
-            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, stoppingToken);
+            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
             if (response.StatusCode == HttpStatusCode.NotModified && current.Snapshot is { } unchanged)
             {
                 return Succeeded(settings, current, unchanged);
@@ -134,7 +147,7 @@ internal sealed partial class PalancaSync(
                 return Failed(current, SyncFailure.Rejected, $"Palanca answered {(int)response.StatusCode} {response.ReasonPhrase}", exception: null);
             }
 
-            var document = await response.Content.ReadFromJsonAsync(ClientJsonContext.Default.FlagsDocument, stoppingToken);
+            var document = await response.Content.ReadFromJsonAsync(ClientJsonContext.Default.FlagsDocument, deadline.Token);
             if (document is not { Application: { } application, Environment: { } environment, Revision: { } revision, Flags: { } flags })
             {
                 return Failed(current, SyncFailure.Invalid, "Palanca's answer is not a flags document", exception: null);
@@ -153,9 +166,13 @@ internal sealed partial class PalancaSync(
         {
             return false;
         }
+        catch (OperationCanceledException) when (deadline.IsCancellationRequested)
+        {
+            var seconds = settings.RequestTimeout.TotalSeconds.ToString(CultureInfo.InvariantCulture);
+            return Failed(current, SyncFailure.Unreachable, $"no complete answer within {seconds} seconds", exception: null);
+        }
         catch (Exception exception) when (exception is HttpRequestException or IOException or OperationCanceledException)
         {
-            // Once stopping is ruled out, a cancellation is the request timeout.
             return Failed(current, SyncFailure.Unreachable, exception.Message, exception);
         }
         catch (Exception exception)
@@ -167,20 +184,22 @@ internal sealed partial class PalancaSync(
 
     private bool Succeeded(ClientSettings settings, SyncStatus current, FlagSnapshot snapshot)
     {
-        if (_logged != Outage.None)
-        {
-            LogRecovered(_logger, _failures);
-        }
-
+        var (failures, recovered) = (_failures, _logged != Outage.None);
         _failures = 0;
         _logged = Outage.None;
         state.Set(new SyncStatus(snapshot, time.GetUtcNow(), Problem: null));
+        _firstSnapshot.TrySetResult();
+
+        if (recovered)
+        {
+            LogRecovered(_logger, failures);
+        }
+
         if (snapshot.Revision != current.Snapshot?.Revision)
         {
             LogServing(_logger, settings.Application, settings.Environment, snapshot.Revision, snapshot.Flags.Count);
         }
 
-        _firstSnapshot.TrySetResult();
         return true;
     }
 

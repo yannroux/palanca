@@ -22,7 +22,7 @@ internal sealed class ClientHarness : IAsyncDisposable
 
     private readonly ServiceProvider _provider;
 
-    private ClientHarness(Action<PalancaOptions>? configure)
+    private ClientHarness(Action<PalancaOptions>? configure, TimeSpan? requestTimeout)
     {
         var services = new ServiceCollection();
         services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Trace).AddFakeLogging());
@@ -35,6 +35,16 @@ internal sealed class ClientHarness : IAsyncDisposable
             options.Environment = "production";
             configure?.Invoke(options);
         });
+        if (requestTimeout is { } timeout)
+        {
+            // Registered after AddPalanca's own, so it is the one resolved.
+            services.AddSingleton(provider =>
+            {
+                var configuration = ClientConfiguration.Read(provider);
+                return configuration with { Settings = configuration.Settings! with { RequestTimeout = timeout } };
+            });
+        }
+
         services.AddHealthChecks().AddPalanca();
         services.ConfigureHttpClientDefaults(http => http.ConfigurePrimaryHttpMessageHandler(() => Service));
         _provider = services.BuildServiceProvider();
@@ -55,7 +65,7 @@ internal sealed class ClientHarness : IAsyncDisposable
 
     public IServiceProvider Services => _provider;
 
-    public static ClientHarness Create(Action<PalancaOptions>? configure = null) => new(configure);
+    public static ClientHarness Create(Action<PalancaOptions>? configure = null, TimeSpan? requestTimeout = null) => new(configure, requestTimeout);
 
     /// <summary>
     /// Starts the client as a host would, for a first sync that finishes without the clock moving, and waits until
@@ -131,6 +141,10 @@ internal sealed class FakeService : HttpMessageHandler
         return this;
     }
 
+    /// <summary>The next request gets a 200 whose body never arrives.</summary>
+    public FakeService ThenStallTheBody() =>
+        Then(() => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new StalledStream()) });
+
     /// <summary>Answers every request after the scripted ones this way; by default the connection is refused.</summary>
     public void Otherwise(Func<HttpResponseMessage> answer) => _fallback = _ => Task.FromResult(answer());
 
@@ -148,6 +162,41 @@ internal sealed class FakeService : HttpMessageHandler
         var answer = _answers.TryDequeue(out var next) ? next : _fallback;
         return answer(cancellationToken);
     }
+}
+
+/// <summary>A body that sends nothing until the read is cancelled.</summary>
+internal sealed class StalledStream : Stream
+{
+    public override bool CanRead => true;
+
+    public override bool CanSeek => false;
+
+    public override bool CanWrite => false;
+
+    public override long Length => throw new NotSupportedException();
+
+    public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+
+    public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+        await Task.Delay(Timeout.Infinite, cancellationToken);
+        return 0;
+    }
+
+    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+        ReadAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
+
+    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+    public override void Flush()
+    {
+    }
+
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+    public override void SetLength(long value) => throw new NotSupportedException();
+
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 }
 
 internal sealed record SentRequest(HttpMethod Method, Uri? Uri, string? Authorization, string IfNoneMatch);
