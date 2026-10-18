@@ -58,7 +58,7 @@ In development:
   - restoring an archived flag that is on there asks first;
   - unprotecting the environment asks first.
 - **Retiring a flag:** a flag starts off everywhere unless it is created with initial values. Archiving it moves it off the board, with its history kept; restoring brings it back with its values, and only an archived flag can be deleted.
-- **History:** every change to applications, environments, flags, values, SDK keys, management tokens and the owner's passkeys is recorded, with when, where, and who made it: the owner in the dashboard, a host command, or, from Phase 2, a management token through the API. The History page lists the records newest first, 50 at a time, and filters them by application, environment, flag and source; a description change shows the old and the new text. Changes made through the API stand out with a solid plate and the token's name in bold. The database refuses any statement that edits, replaces or deletes a record.
+- **History:** every change to applications, environments, flags, values, SDK keys, management tokens and the owner's passkeys is recorded, with when, where, and who made it: the owner in the dashboard, a host command, or a management token through the API. The History page lists the records newest first, 50 at a time, and filters them by application, environment, flag and source; a description change shows the old and the new text. Changes made through the API stand out with a solid plate and the token's name in bold. The database refuses any statement that edits, replaces or deletes a record.
 
 ## SDK keys and the evaluation API
 
@@ -131,6 +131,45 @@ Content-Type: application/json
 - **Credentials:** only management tokens work here. SDK keys and the dashboard's session cookie get `401`; a management token opens no dashboard page and gets `401` from the evaluation API.
 - **Archived items:** archived applications, environments and flags are left out of the lists; the history still shows the changes made to them.
 - **Caching and last use:** responses carry `Cache-Control: no-store`. A token's last use is recorded at most once a minute and shown on the Tokens page.
+
+### From an agent or a script
+
+Give the agent a read-write token scoped to its application, and keep the token in a file only that user can read. The agent can learn the API from the OpenAPI document, then work with plain HTTP:
+
+```sh
+token="$(cat ~/.config/palanca/token)"
+base=https://palanca.example.com/api/manage/v1
+
+# Create a flag that is on in staging only.
+curl -sS --fail-with-body -X POST "$base/applications/hogarhero/flags" \
+  -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
+  -d '{"key":"provider-onboarding-v2","description":"Second version of provider onboarding","values":{"staging":true}}'
+
+# Later, turn it on in production too.
+curl -sS --fail-with-body -X PUT "$base/applications/hogarhero/flags/provider-onboarding-v2/values/production" \
+  -H "Authorization: Bearer $token" -H "Content-Type: application/json" -d '{"enabled":true}'
+```
+
+Each consumer's client picks up a change at its next poll, about one poll interval later (30 seconds by default); see the Blazor Server note under *Client package*.
+
+## Client package
+
+.NET applications read flags with the `Palanca.Client` package. It keeps one environment's flags in memory, so reads never wait on the network, and the flag service being down never takes the application down. Its README, [`src/Palanca.Client/README.md`](src/Palanca.Client/README.md), covers every option; it is also the package's page on nuget.org.
+
+```csharp
+builder.Services.AddPalanca(builder.Configuration.GetSection("Palanca"));
+builder.Services.AddHealthChecks().AddPalanca();
+
+// flags is an injected IPalancaFlags; Flags.NewSearch is a PalancaFlag with its default.
+if (flags.IsEnabled(Flags.NewSearch)) { ... }
+```
+
+- **Settings:** `Endpoint`, `SdkKey`, `Application` and `Environment` under `Palanca`. Every answer must be for that application and environment, so a key deployed to the wrong environment is refused and logged as an error.
+- **Polling:** every 30 seconds by default, with the last revision, so an unchanged poll gets `304`. Startup waits for the first flags, 2 seconds at most by default, then goes on with the code defaults.
+- **Failures:** the client keeps the flags it has, retries with backoff up to the poll interval, and logs one warning per outage.
+- **Health and metrics:** the `palanca` check is Degraded, never Unhealthy, before the first flags arrive and once they are more than 5 minutes old (by default). Sync metrics are on the `Palanca.Client` meter.
+- **Interactive Blazor Server:** a component that reads a flag in `OnInitialized{Async}` keeps that value for the life of the component. Re-renders and navigation within the same page don't re-read it. Navigating to another page or reloading re-creates that page's components, but components that stay on screen across navigation, such as parts of a layout, keep theirs. Read the flag while rendering, or in `OnParametersSet`, when it must follow changes.
+- **Releases:** pushing a `client-v<version>` tag on a commit on `main` publishes the package to nuget.org (`.github/workflows/client-release.yml`), through nuget.org's Trusted Publishing.
 
 ## Database
 

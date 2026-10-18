@@ -126,7 +126,9 @@ public sealed class ManagementWriteTests : IAsyncLifetime
         using var body = await JsonAsync(response);
         Assert.Equal("Search results v2", body.RootElement.GetProperty("description").GetString());
         var record = (await RecordsAsync("new-search"))[^1];
-        Assert.Equal((ChangeAction.FlagDescriptionChanged, ChangeSource.Api, "claude-hogarhero"), (record.Action, record.Source, record.Actor));
+        Assert.Equal(
+            (ChangeAction.FlagDescriptionChanged, ChangeSource.Api, "claude-hogarhero", (int?)_writerId),
+            (record.Action, record.Source, record.Actor, record.TokenId));
 
         await AssertProblemAsync(await SendAsync(HttpMethod.Patch, "/api/manage/v1/applications/hogarhero/flags/legacy-search", _writer, new { description = "x" }), HttpStatusCode.NotFound);
         await AssertProblemAsync(await SendAsync(HttpMethod.Patch, "/api/manage/v1/applications/hogarhero/flags/no-such-flag", _writer, new { description = "x" }), HttpStatusCode.NotFound);
@@ -280,15 +282,23 @@ public sealed class ManagementWriteTests : IAsyncLifetime
     [InlineData("POST", "/api/manage/v1/applications/hogarhero/keys")]
     public async Task NoCallCreatesOrRevokesATokenOrArchivesOrDeletesAFlag(string method, string path)
     {
+        var before = await CatalogCountsAsync();
+
         using var response = await SendAsync(new HttpMethod(method), path, _writer, new { name = "escalated", key = "escalated" });
 
         await AssertProblemAsync(response, HttpStatusCode.NotFound);
+        Assert.Equal(before, await CatalogCountsAsync());
         Assert.Equal(3, await _factory.WithDbAsync(db => db.ManagementTokens.CountAsync(t => t.RevokedAt == null, Ct)));
         Assert.Equal(
             ["legacy-search:archived", "new-search:active"],
             await _factory.WithDbAsync(db => db.Flags.Where(f => f.Application.Key == "hogarhero").OrderBy(f => f.Key)
                 .Select(f => f.Key + (f.ArchivedAt == null ? ":active" : ":archived")).ToListAsync(Ct)));
     }
+
+    // Applications, environments, SDK keys and change records, which no escalation may add to.
+    private Task<(int, int, int, int)> CatalogCountsAsync() =>
+        _factory.WithDbAsync(async db => (
+            await db.Applications.CountAsync(Ct), await db.Environments.CountAsync(Ct), await db.SdkKeys.CountAsync(Ct), await db.ChangeRecords.CountAsync(Ct)));
 
     private async Task<string> CreateTokenAsync(string name, TokenPermission permission, string[] applications)
     {

@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Palanca.Applications;
 using Palanca.Data;
+using Palanca.ManagementTokens;
 using Palanca.SdkKeys;
 
 namespace Palanca.Tests.Owners;
@@ -152,6 +153,53 @@ public sealed class LogHygieneTests
         Assert.DoesNotContain(response.Headers.Concat(response.Content.Headers).SelectMany(h => h.Value), value => value.Contains(key, StringComparison.Ordinal));
         Assert.Contains(logs.Messages, message => message.Contains("no such table: SdkKeys", StringComparison.Ordinal));
         Assert.DoesNotContain(logs.Messages, message => message.Contains(key, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task AManagementFailureInProductionAnswersWithoutAnErrorPage()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var logs = new CapturingLoggerProvider();
+        await using var factory = new PalancaFactory
+        {
+            EnvironmentName = "Production",
+            Logs = logs,
+            Settings = new Dictionary<string, string?>
+            {
+                ["Logging:LogLevel:Default"] = "Trace",
+                ["Logging:LogLevel:Microsoft.AspNetCore"] = "Trace",
+                ["Logging:LogLevel:Microsoft.EntityFrameworkCore"] = "Trace",
+            },
+        };
+        factory.UseKestrel(options => options.Listen(System.Net.IPAddress.Loopback, 0));
+        factory.StartServer();
+        var address = factory.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>()
+            .Features.Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()!.Addresses.Single();
+        string token;
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var owner = new ChangeActor(ChangeSource.Dashboard, OwnerSetup.Email);
+            var applications = scope.ServiceProvider.GetRequiredService<ApplicationCommands>();
+            await applications.CreateAsync("hogarhero", "HogarHero", owner, ct);
+            await applications.CreateEnvironmentAsync("hogarhero", "staging", "Staging", false, owner, ct);
+            var (_, created) = await scope.ServiceProvider.GetRequiredService<ManagementTokenCommands>()
+                .CreateAsync("agent", TokenPermission.ReadOnly, allApplications: false, ["hogarhero"], 365, owner, ct);
+            token = created!.Token;
+        }
+
+        // A real failure after the token is accepted: the flags' values are gone.
+        await factory.WithDbAsync(db => db.Database.ExecuteSqlRawAsync("DROP TABLE FlagValues", ct));
+        using var api = new HttpClient { BaseAddress = new Uri(address) };
+        api.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var response = await api.GetAsync("/api/manage/v1/applications/hogarhero/flags", ct);
+
+        Assert.Equal(System.Net.HttpStatusCode.InternalServerError, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        Assert.DoesNotContain("FlagValues", body, StringComparison.Ordinal);
+        Assert.DoesNotContain(token, body, StringComparison.Ordinal);
+        Assert.DoesNotContain(response.Headers.Concat(response.Content.Headers).SelectMany(h => h.Value), value => value.Contains(token, StringComparison.Ordinal));
+        Assert.Contains(logs.Messages, message => message.Contains("no such table: FlagValues", StringComparison.Ordinal));
+        Assert.DoesNotContain(logs.Messages, message => message.Contains(token, StringComparison.Ordinal));
     }
 
     private static string ClientDataOf(string credentialJson) =>
