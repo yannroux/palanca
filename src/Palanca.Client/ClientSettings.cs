@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -12,6 +13,7 @@ internal sealed record ClientSettings(
     public static readonly TimeSpan MinimumPollInterval = TimeSpan.FromSeconds(5);
     public static readonly TimeSpan MaximumPollInterval = TimeSpan.FromHours(1);
     public static readonly TimeSpan MaximumStartupWait = TimeSpan.FromSeconds(30);
+    public static readonly TimeSpan MaximumStaleAfter = TimeSpan.FromDays(1);
 
     /// <summary>How long one sync may take, from sending the request to reading the whole body.</summary>
     public TimeSpan RequestTimeout { get; init; } = TimeSpan.FromSeconds(10);
@@ -41,8 +43,12 @@ internal sealed record ClientConfiguration(ClientSettings? Settings, IReadOnlyLi
         }
         catch (Exception exception)
         {
-            // Binding throws for a value it cannot convert, such as PollInterval: abc.
-            return new ClientConfiguration(null, [$"its settings could not be read ({exception.Message.TrimEnd('.')})"], []);
+            // Binding throws for a value it cannot convert, such as PollInterval: abc. Its message quotes the value,
+            // which may hold credentials in an address, so only the setting's path is passed on.
+            var path = Regex.Match(exception.Message, @" at '(?<path>[^']+)'", RegexOptions.None, TimeSpan.FromSeconds(1));
+            return new ClientConfiguration(null, [path.Success
+                ? $"{path.Groups["path"].Value} has a value that cannot be read"
+                : $"its settings cannot be read ({exception.GetType().Name})"], []);
         }
 
         return From(options);
@@ -73,7 +79,7 @@ internal sealed record ClientConfiguration(ClientSettings? Settings, IReadOnlyLi
         var application = Required(options.Application, "Application", problems);
         var environment = Required(options.Environment, "Environment", problems);
 
-        // A plain number binds as days, so a maximum also catches "30" meant as seconds.
+        // A plain number binds as days, so the maximums also limit "30" meant as seconds.
         var pollInterval = options.PollInterval;
         if (pollInterval < ClientSettings.MinimumPollInterval)
         {
@@ -103,6 +109,11 @@ internal sealed record ClientConfiguration(ClientSettings? Settings, IReadOnlyLi
         {
             adjustments.Add($"StaleAfter {staleAfter} is under the poll interval, so it is raised to {pollInterval}");
             staleAfter = pollInterval;
+        }
+        else if (staleAfter > ClientSettings.MaximumStaleAfter)
+        {
+            adjustments.Add($"StaleAfter {staleAfter} is over the maximum, so it is lowered to {ClientSettings.MaximumStaleAfter}");
+            staleAfter = ClientSettings.MaximumStaleAfter;
         }
 
         var settings = problems.Count == 0

@@ -21,15 +21,21 @@ public sealed class PalancaOptions
     /// <summary>The environment key the SDK key must belong to, such as <c>production</c>.</summary>
     public string? Environment { get; set; }
 
-    /// <summary>How often to ask for changes. 30 seconds by default; anything under 5 seconds is raised to 5.</summary>
+    /// <summary>
+    /// How often to ask for changes. 30 seconds by default; anything under 5 seconds is raised to 5, and anything
+    /// over an hour lowered to an hour.
+    /// </summary>
     public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(30);
 
-    /// <summary>How long startup waits for the first flags before going on with the code defaults. 2 seconds by default.</summary>
+    /// <summary>
+    /// How long startup waits for the first flags before going on with the code defaults. 2 seconds by default, and
+    /// at most 30 seconds.
+    /// </summary>
     public TimeSpan StartupWait { get; set; } = TimeSpan.FromSeconds(2);
 
     /// <summary>
     /// How old the flags may get before the health check reports Degraded. 5 minutes by default; anything under the
-    /// poll interval is raised to it.
+    /// poll interval is raised to it, and anything over a day lowered to a day.
     /// </summary>
     public TimeSpan StaleAfter { get; set; } = TimeSpan.FromMinutes(5);
 }

@@ -154,7 +154,7 @@ public sealed class SyncTests
 
         Assert.True(client.Flags.IsEnabled("new-search", defaultValue: false));
         Assert.Equal(
-            "Could not sync flags from Palanca (no complete answer within 0.2 seconds); serving the flags of revision 1 and retrying, without logging again until a sync succeeds",
+            "Could not sync flags from Palanca (No complete answer within 0.2 seconds); serving the flags of revision 1 and retrying, without logging again until a sync succeeds",
             Assert.Single(client.LogsAtLeast(LogLevel.Warning)).Message);
     }
 

@@ -175,21 +175,24 @@ public sealed class StartupTests
             Environment = "production",
             PollInterval = TimeSpan.FromDays(30),
             StartupWait = TimeSpan.FromDays(2),
-            StaleAfter = TimeSpan.FromHours(2),
+            StaleAfter = TimeSpan.FromDays(300),
         });
 
-        Assert.Equal((TimeSpan.FromHours(1), TimeSpan.FromSeconds(30)), (configuration.Settings!.PollInterval, configuration.Settings.StartupWait));
+        Assert.Equal(
+            (TimeSpan.FromHours(1), TimeSpan.FromSeconds(30), TimeSpan.FromDays(1)),
+            (configuration.Settings!.PollInterval, configuration.Settings.StartupWait, configuration.Settings.StaleAfter));
         Assert.Equal(
             [
                 "PollInterval 30.00:00:00 is over the maximum, so the client polls every 01:00:00",
                 "StartupWait 2.00:00:00 is over the maximum, so startup waits at most 00:00:30",
+                "StaleAfter 300.00:00:00 is over the maximum, so it is lowered to 1.00:00:00",
             ],
             configuration.Adjustments);
     }
 
     [Theory]
     [InlineData("Palanca:PollInterval", "abc")]
-    [InlineData("Palanca:Endpoint", "http://palanca:port")]
+    [InlineData("Palanca:Endpoint", "http://user:secret@palanca:port")]
     public async Task SettingsThatCannotBeReadLeaveTheClientUnconfiguredWithoutFailingStartup(string key, string value)
     {
         var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings());
@@ -209,11 +212,8 @@ public sealed class StartupTests
 
         Assert.True(host.Services.GetRequiredService<IPalancaFlags>().IsEnabled("new-search", defaultValue: true));
         var error = Assert.Single(host.Services.GetFakeLogCollector().GetSnapshot(), record => record.Level == LogLevel.Error);
-        Assert.StartsWith(
-            $"Palanca is not configured, so every flag reads its code default: its settings could not be read (Failed to convert configuration value",
-            error.Message,
-            StringComparison.Ordinal);
-        Assert.Contains($"'{key}'", error.Message, StringComparison.Ordinal);
+        Assert.Equal($"Palanca is not configured, so every flag reads its code default: {key} has a value that cannot be read", error.Message);
+        Assert.Null(error.Exception);
         await host.StopAsync(Ct);
     }
 

@@ -94,7 +94,7 @@ internal sealed partial class PalancaSync(
             }
             catch (Exception)
             {
-                // Such as a metrics listener that throws: the snapshot stays and the loop goes on.
+                // Nothing is expected here; whatever it is, the snapshot stays and the loop goes on.
                 succeeded = false;
             }
 
@@ -169,7 +169,7 @@ internal sealed partial class PalancaSync(
         catch (OperationCanceledException) when (deadline.IsCancellationRequested)
         {
             var seconds = settings.RequestTimeout.TotalSeconds.ToString(CultureInfo.InvariantCulture);
-            return Failed(current, SyncFailure.Unreachable, $"no complete answer within {seconds} seconds", exception: null);
+            return Failed(current, SyncFailure.Unreachable, $"No complete answer within {seconds} seconds", exception: null);
         }
         catch (Exception exception) when (exception is HttpRequestException or IOException or OperationCanceledException)
         {
@@ -231,8 +231,8 @@ internal sealed partial class PalancaSync(
     private void Record(SyncStatus current, SyncFailure failure, string problem)
     {
         _failures++;
-        metrics.RecordFailure(failure);
         state.Set(current with { Problem = problem });
+        metrics.RecordFailure(failure);
     }
 
     private static string Serving(SyncStatus current) =>

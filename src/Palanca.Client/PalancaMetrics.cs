@@ -52,8 +52,17 @@ internal sealed class ClientMetrics
             "Revision of the flag values being served.");
     }
 
-    public void RecordFailure(SyncFailure failure) =>
-        _failures.Add(1, new KeyValuePair<string, object?>("reason", Reason(failure)));
+    public void RecordFailure(SyncFailure failure)
+    {
+        try
+        {
+            _failures.Add(1, new KeyValuePair<string, object?>("reason", Reason(failure)));
+        }
+        catch (Exception)
+        {
+            // A listener's callback runs inside Add; one that throws must not change how the sync goes.
+        }
+    }
 
     private static string Reason(SyncFailure failure) => failure switch
     {

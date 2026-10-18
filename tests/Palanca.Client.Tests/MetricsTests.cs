@@ -65,6 +65,33 @@ public sealed class MetricsTests
         Assert.All(failures.GetMeasurementSnapshot(), measurement => Assert.Equal(1, measurement.Value));
     }
 
+    [Fact]
+    public async Task AMetricsListenerThatThrowsDoesNotStopPolling()
+    {
+        await using var client = ClientHarness.Create(options => options.StartupWait = TimeSpan.Zero);
+        // Only this client's meter: a listener sees every meter in the process, including other tests' clients.
+        var meterFactory = client.Services.GetRequiredService<IMeterFactory>();
+        using var listener = new MeterListener();
+        listener.InstrumentPublished = (instrument, meterListener) =>
+        {
+            if (instrument.Meter.Name == PalancaMetrics.MeterName && ReferenceEquals(instrument.Meter.Scope, meterFactory))
+            {
+                meterListener.EnableMeasurementEvents(instrument);
+            }
+        };
+        listener.SetMeasurementEventCallback<long>((_, _, _, _) => throw new InvalidOperationException("The exporter is down."));
+        listener.Start();
+        client.Service.Then(HttpStatusCode.BadGateway).Then(HttpStatusCode.BadGateway).Flags(1, """{"new-search":true}""");
+        await client.StartAsync();
+
+        await client.AdvanceToNextAttemptAsync(TimeSpan.FromSeconds(1));
+        await client.AdvanceToNextAttemptAsync(TimeSpan.FromSeconds(2));
+
+        Assert.False(client.Sync.ExecuteTask!.IsCompleted);
+        Assert.Equal(3, client.Service.Requests.Count);
+        Assert.True(client.Flags.IsEnabled("new-search", defaultValue: false));
+    }
+
     private static MetricCollector<T> Collect<T>(ClientHarness client, string instrument)
         where T : struct =>
         new(client.Services.GetRequiredService<IMeterFactory>(), PalancaMetrics.MeterName, instrument);
