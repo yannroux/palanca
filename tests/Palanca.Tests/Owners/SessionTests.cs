@@ -105,6 +105,11 @@ public sealed class SessionTests : IAsyncDisposable
     private async Task<HttpStatusCode> StatusOfHomeAsync()
     {
         using var response = await _client.Http.GetAsync("/", TestContext.Current.CancellationToken);
+        if (response.StatusCode == HttpStatusCode.Redirect)
+        {
+            Assert.StartsWith("/sign-in", DashboardClient.RedirectPath(response), StringComparison.Ordinal);
+        }
+
         return response.StatusCode;
     }
 

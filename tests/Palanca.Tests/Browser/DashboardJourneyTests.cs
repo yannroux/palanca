@@ -69,9 +69,18 @@ public sealed class DashboardJourneyTests : IAsyncLifetime
         var secret = page.Locator("code.secret");
         await Assertions.Expect(secret).ToHaveTextAsync(new System.Text.RegularExpressions.Regex("^palanca_sdk_[A-Za-z0-9_-]{43}$"));
         await BrowserHost.ScreenshotAsync(page, "keys-created");
+        var key = (await secret.TextContentAsync())!;
         await page.GotoAsync("/apps/hogarhero/keys");
         await Assertions.Expect(page.Locator("code.secret")).ToHaveCountAsync(0);
         await Assertions.Expect(stagingKeys.Locator("tbody tr")).ToHaveCountAsync(1);
+
+        // The history tells the rollout newest first, naming the key only by its visible start.
+        await page.GetByRole(AriaRole.Navigation).GetByRole(AriaRole.Link, new() { Name = "History" }).ClickAsync();
+        await page.WaitForURLAsync($"{origin}/history");
+        await Assertions.Expect(page.Locator(".history-sentence").Nth(0)).ToHaveTextAsync($"Created the SDK key hogarhero-web ({key[..18]}) for staging");
+        await Assertions.Expect(page.Locator(".history-sentence").Nth(1)).ToHaveTextAsync("Turned new-search on in production");
+        await Assertions.Expect(page.Locator(".history-sentence").Nth(2)).ToHaveTextAsync("Turned new-search on in staging");
+        Assert.DoesNotContain(key, await page.ContentAsync(), StringComparison.Ordinal);
 
         Assert.Empty(sockets);
 
@@ -136,7 +145,13 @@ public sealed class DashboardJourneyTests : IAsyncLifetime
         await BrowserHost.ScreenshotAsync(page, "board");
         await page.SetViewportSizeAsync(390, 844);
         await BrowserHost.ScreenshotAsync(page, "board-mobile");
+        await page.GotoAsync("/history");
+        await BrowserHost.ScreenshotAsync(page, "history-mobile");
         await page.SetViewportSizeAsync(1440, 900);
+        await page.GotoAsync("/history?app=hogarhero");
+        await BrowserHost.ScreenshotAsync(page, "history");
+        await page.GotoAsync("/history?source=api");
+        await BrowserHost.ScreenshotAsync(page, "history-api");
 
         // With 40 flags, the header row stays pinned while the owner scrolls down the board.
         await using (var scope = _host.Factory.Services.CreateAsyncScope())

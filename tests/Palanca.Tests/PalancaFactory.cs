@@ -20,7 +20,6 @@ public sealed class PalancaFactory : WebApplicationFactory<Program>
     /// <summary>The dashboard origin the app is configured with, and the origin a test authenticator reports.</summary>
     public const string Origin = "https://localhost";
 
-    private readonly string _environment;
     private readonly TempDirectory? _ownedDirectory;
 
     public PalancaFactory()
@@ -30,7 +29,7 @@ public sealed class PalancaFactory : WebApplicationFactory<Program>
 
     private PalancaFactory(string? directory, string environment)
     {
-        _environment = environment;
+        EnvironmentName = environment;
         if (directory is null)
         {
             _ownedDirectory = new TempDirectory();
@@ -45,6 +44,9 @@ public sealed class PalancaFactory : WebApplicationFactory<Program>
     public static PalancaFactory InDirectory(string directory, string environment = "Development") => new(directory, environment);
 
     public string DataDirectory { get; }
+
+    /// <summary>The hosting environment; Development unless a test needs Production's behaviour.</summary>
+    public string EnvironmentName { get; init; }
 
     public string DatabasePath => Path.Combine(DataDirectory, "palanca.db");
 
@@ -64,7 +66,7 @@ public sealed class PalancaFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment(_environment);
+        builder.UseEnvironment(EnvironmentName);
         builder.ConfigureAppConfiguration(configuration =>
         {
             configuration.AddInMemoryCollection(new Dictionary<string, string?>

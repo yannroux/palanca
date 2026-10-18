@@ -4,8 +4,9 @@
 <header class="board-bar">
     <a class="board-home" href="/"><Wordmark /></a>
     <nav class="board-nav" aria-label="Main">
-        <a href="/" class="@Active(applications: true)" aria-current="@Current(applications: true)">Applications</a>
-        <a href="/passkeys" class="@Active(applications: false)" aria-current="@Current(applications: false)">Passkeys</a>
+        <a href="/" class="@Active(Section.Applications)" aria-current="@Current(Section.Applications)">Applications</a>
+        <a href="/history" class="@Active(Section.History)" aria-current="@Current(Section.History)">History</a>
+        <a href="/passkeys" class="@Active(Section.Passkeys)" aria-current="@Current(Section.Passkeys)">Passkeys</a>
     </nav>
     <div class="board-owner">
         <SectionOutlet SectionName="@BoardContext" />
@@ -27,16 +28,28 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = null!;
 
-    private bool OnApplications
+    private enum Section
+    {
+        Applications,
+        History,
+        Passkeys,
+    }
+
+    private Section CurrentSection
     {
         get
         {
             var path = "/" + Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
-            return path == "/" || path.StartsWith("/apps/", StringComparison.Ordinal);
+            return path switch
+            {
+                "/history" => Section.History,
+                "/passkeys" => Section.Passkeys,
+                _ => Section.Applications,
+            };
         }
     }
 
-    private string? Active(bool applications) => OnApplications == applications ? "active" : null;
+    private string? Active(Section section) => CurrentSection == section ? "active" : null;
 
-    private string? Current(bool applications) => OnApplications == applications ? "page" : null;
+    private string? Current(Section section) => CurrentSection == section ? "page" : null;
 }

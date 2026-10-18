@@ -1,0 +1,178 @@
+@page "/history"
+@using Palanca.Data
+@using Palanca.History
+@inject HistoryQueries Queries
+@inject TimeProvider Time
+
+<PageTitle>History · Palanca</PageTitle>
+
+<div class="page-head">
+    <div class="page-title">
+        <h1>History</h1>
+        <p class="page-meta">Every change, newest first. Change records cannot be edited or deleted.</p>
+    </div>
+</div>
+
+<form method="get" action="/history" class="history-filters" role="search" aria-label="Filter the history">
+    <div class="field">
+        <label for="filter-application">Application</label>
+        <select id="filter-application" name="app">
+            <option value="">Any</option>
+            @foreach (var application in page.Applications)
+            {
+                <option value="@application" selected="@(application == filter.Application)">@application</option>
+            }
+        </select>
+    </div>
+    <div class="field">
+        <label for="filter-environment">Environment</label>
+        <input id="filter-environment" name="env" value="@filter.Environment" autocomplete="off" spellcheck="false" placeholder="Any" />
+    </div>
+    <div class="field">
+        <label for="filter-flag">Flag</label>
+        <input id="filter-flag" name="flag" value="@filter.Flag" autocomplete="off" spellcheck="false" placeholder="Any" />
+    </div>
+    <div class="field">
+        <label for="filter-source">Source</label>
+        <select id="filter-source" name="source">
+            <option value="">Any</option>
+            <option value="dashboard" selected="@(Source == "dashboard")">Dashboard</option>
+            <option value="api" selected="@(Source == "api")">API</option>
+            <option value="host" selected="@(Source == "host")">Host command</option>
+        </select>
+    </div>
+    <div class="history-filter-actions">
+        <button type="submit" class="button button-quiet">Filter</button>
+        @if (!filter.IsEmpty)
+        {
+            <a class="link-quiet" href="/history">Clear</a>
+        }
+    </div>
+</form>
+
+@if (page.Records.Count == 0)
+{
+    <div class="empty">
+        @if (!filter.IsEmpty)
+        {
+            <p class="empty-title">No change matches</p>
+            <p>Try fewer filters.</p>
+        }
+        else if (filter.Before is not null)
+        {
+            <p class="empty-title">No older changes</p>
+            <p><a href="/history">See the newest changes</a>.</p>
+        }
+        else
+        {
+            <p class="empty-title">No changes yet</p>
+            <p>Changes made in the dashboard, through the API, or with a host command appear here.</p>
+        }
+    </div>
+}
+else
+{
+    <table class="ledger history">
+        <thead>
+            <tr>
+                <th scope="col">When</th>
+                <th scope="col">Who</th>
+                <th scope="col">Where</th>
+                <th scope="col">Change</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var record in page.Records)
+            {
+                <tr class="@(record.Source == ChangeSource.Api ? "history-agent" : null)">
+                    <td class="cell-time"><time datetime="@record.OccurredAt.ToString("O")" title="@Display.Ago(record.OccurredAt, now)">@Display.Timestamp(record.OccurredAt)</time></td>
+                    <td class="history-who" data-label="Who">
+                        <span>
+                            <span class="source source-@record.Source.ToString().ToLowerInvariant()">@ChangeWording.Source(record.Source)</span>
+                            <span class="history-actor">@record.Actor</span>
+                        </span>
+                    </td>
+                    <td class="history-where" data-label="Where"><span>@Where(record)</span></td>
+                    <td class="history-change" data-label="Change">
+                        <span>
+                            <span class="history-sentence">@ChangeWording.Describe(record)</span>
+                            @if (record.Action == ChangeAction.FlagValueSet)
+                            {
+                                @* The sentence already says on or off; the tile repeats it for the eye only. *@
+                                <span class="tile tile-small@(record.NewValue == "on" ? " on" : null)" aria-hidden="true">@record.NewValue?.ToUpperInvariant()</span>
+                            }
+                            @if (ChangeWording.Detail(record) is { } detail)
+                            {
+                                <span class="history-detail">@detail</span>
+                            }
+                        </span>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (page.Older is { } older)
+    {
+        <p class="history-more"><a class="button button-quiet" href="@OlderUrl(older)">Older changes</a></p>
+    }
+}
+
+@code {
+    private HistoryFilter filter = new(null, null, null, null, null);
+    private ChangePage page = new([], null, []);
+    private DateTime now;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromQuery(Name = "app")]
+    private string? App { get; set; }
+
+    [SupplyParameterFromQuery(Name = "env")]
+    private string? Env { get; set; }
+
+    [SupplyParameterFromQuery(Name = "flag")]
+    private string? Flag { get; set; }
+
+    [SupplyParameterFromQuery(Name = "source")]
+    private string? Source { get; set; }
+
+    // A string, so a malformed cursor shows the newest changes instead of failing to bind.
+    [SupplyParameterFromQuery(Name = "before")]
+    private string? Before { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        now = Time.GetUtcNow().UtcDateTime;
+        // Keys are lowercase, so a filter typed in capitals still matches.
+        filter = new HistoryFilter(
+            Blank(App)?.ToLowerInvariant(), Blank(Env)?.ToLowerInvariant(), Blank(Flag)?.ToLowerInvariant(),
+            Source switch { "dashboard" => ChangeSource.Dashboard, "api" => ChangeSource.Api, "host" => ChangeSource.Host, _ => null },
+            long.TryParse(Before, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var before) ? before : null);
+        page = await Queries.PageAsync(filter, HttpContext.RequestAborted);
+    }
+
+    private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string Where(ChangeRecord record) => record switch
+    {
+        { ApplicationKey: { } application, EnvironmentKey: { } environment } => $"{application} · {environment}",
+        { ApplicationKey: { } application } => application,
+        _ => "Owner account",
+    };
+
+    private string OlderUrl(long older)
+    {
+        var parameters = new List<string>();
+        foreach (var (name, value) in new[] { ("app", filter.Application), ("env", filter.Environment), ("flag", filter.Flag), ("source", Source) })
+        {
+            if (!string.IsNullOrEmpty(value))
+            {
+                parameters.Add($"{name}={Uri.EscapeDataString(value)}");
+            }
+        }
+
+        parameters.Add($"before={older}");
+        return "/history?" + string.Join('&', parameters);
+    }
+}

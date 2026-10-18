@@ -343,6 +343,9 @@ PALANCA set as seven Flap Charcoal tiles (22 x 30px, 19px capitals, 3px apart; 3
 ### Latest Flips
 A charcoal panel listing recent changes like departures: the time in its own 48px column, then the flag key and "environment · who", then a small tile. Changes made by an agent through the API show their attribution line in yellow.
 
+### History Ledger
+The History page is a white ledger, newest first: the time, then who (a source plate and the actor), then where ("application · environment") in muted ink, then the change as one plain sentence, with a small tile after a value change. Source plates are 11px condensed capitals: Dashboard outlined in Field Steel, Host command outlined in ink, and API solid Board Charcoal with Board Letter capitals, the one solid plate in the list, with the token name in semibold beside it. On light ground an agent's change stands out by tone and weight, never yellow. Filters sit above as four fields and a quiet Filter button, submitted by GET. On phones each row becomes a block whose labelled values wrap beside their labels.
+
 ### Confirmation
 A `popover` dialog (no script), white with an ink border, up to 440px wide over a flat dimmed page. It names application, environment (with PROTECTED plate), flag and the new value as a tile, then offers the confirming button (signal for on, danger solid for off) beside a quiet Cancel. The same confirmation exists as a standalone page for the no-popover path.
 
