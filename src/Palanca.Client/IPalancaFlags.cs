@@ -24,6 +24,7 @@ public interface IPalancaFlags
 /// </summary>
 public sealed record PalancaFlag(string Key, bool DefaultValue);
 
+/// <summary>Reads of catalog flags.</summary>
 public static class PalancaFlagsExtensions
 {
     /// <summary>
