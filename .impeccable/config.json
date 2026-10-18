@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-10-18T00:19:14.976Z",
+        "reason": "Claude: canon.html deliberately depicts the category-standard dashboard, which uses Inter; not Palanca's UI"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/model-pick.html"
+        ],
+        "createdAt": "2026-10-18T00:19:14.982Z",
+        "reason": "Claude: title block cells are inset 10px by their span padding (verified in a 1440x900 capture); detector reads the wrapper div only"
+      }
+    ]
+  }
+}

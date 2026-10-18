@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Palanca · HogarHero · Departure Board sketch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --ground:#EDEFEE; --board:#1C1E1F; --flap:#2A2D2F; --hinge:#0B0C0D; --letter:#F4F1E8; --off:#8C9093;
+          --on:#F2B705; --ink:#1C1E1F; --muted:#5E6366; --rule:#D3D6D5; --protect:#C8102E; --recent:#8A6500; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:1440px; height:900px; overflow:hidden; background:var(--ground); color:var(--ink); font:400 14px/20px Barlow, sans-serif; }
+  .cond { font-family:'Barlow Condensed', sans-serif; text-transform:uppercase; letter-spacing:.08em; }
+  header { height:64px; background:var(--board); display:flex; align-items:center; padding:0 40px; gap:40px; }
+  .mark { display:flex; gap:3px; }
+  .mark span { z-index:0; width:22px; height:30px; background:var(--flap); color:var(--letter); display:grid; place-items:center; position:relative;
+               font:700 19px/1 'Barlow Condensed'; border-radius:2px; }
+  .mark span::after { z-index:-1; content:""; position:absolute; left:0; right:0; top:50%; height:1px; background:var(--hinge); }
+  nav { display:flex; gap:28px; font:600 15px/1 'Barlow Condensed'; letter-spacing:.1em; text-transform:uppercase; color:#B9BCBD; }
+  nav a { color:inherit; text-decoration:none; padding:22px 0; border-bottom:3px solid transparent; }
+  nav a.on { color:var(--letter); border-color:var(--on); }
+  .who { margin-left:auto; display:flex; gap:24px; align-items:center; color:#B9BCBD; font:500 14px/1 Barlow; }
+  .who a { color:var(--letter); text-decoration:none; font:600 14px/1 'Barlow Condensed'; letter-spacing:.1em; text-transform:uppercase; }
+  main { display:grid; grid-template-columns:1fr 360px; gap:40px; padding:32px 40px 0; }
+  .title { display:flex; align-items:flex-end; gap:24px; margin-bottom:20px; }
+  h1 { font:700 40px/40px 'Barlow Condensed'; letter-spacing:.04em; text-transform:uppercase; }
+  .meta { color:var(--muted); padding-bottom:4px; }
+  .tools { margin-left:auto; display:flex; gap:12px; }
+  input { width:300px; height:40px; border:1px solid #BFC3C2; background:#fff; padding:0 14px; font:400 14px Barlow; border-radius:3px; }
+  .btn { height:40px; padding:0 18px; background:var(--board); color:var(--letter); border:0; border-radius:3px;
+         font:600 15px/40px 'Barlow Condensed'; letter-spacing:.1em; text-transform:uppercase; }
+  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--rule); }
+  th { text-align:left; height:44px; padding:0 16px; font:600 14px/1 'Barlow Condensed'; letter-spacing:.12em; text-transform:uppercase;
+       color:var(--muted); border-bottom:2px solid var(--ink); }
+  th.prod { color:var(--ink); }
+  .plate { display:inline-block; margin-left:10px; padding:3px 7px; background:var(--protect); color:#fff; font:700 11px/1 'Barlow Condensed'; letter-spacing:.14em; border-radius:2px; }
+  td { height:52px; padding:0 16px; border-bottom:1px solid var(--rule); vertical-align:middle; }
+  td.flag { width:46%; }
+  .key { font:600 17px/20px 'Barlow Condensed'; letter-spacing:.03em; }
+  .desc { color:var(--muted); font-size:13px; line-height:18px; }
+  .cell { display:flex; align-items:center; gap:12px; }
+  .tile { z-index:0; width:60px; height:30px; border-radius:3px; display:grid; place-items:center; position:relative; background:var(--board); color:var(--off);
+          font:700 15px/1 'Barlow Condensed'; letter-spacing:.14em; }
+  .tile::after { z-index:-1; content:""; position:absolute; left:0; right:0; top:50%; height:1px; background:var(--hinge); }
+  .tile.on { background:var(--on); color:var(--ink); }
+  .tile.on::after { background:rgba(0,0,0,.3); }
+  .when { font-size:12px; line-height:16px; color:var(--muted); }
+  .recent .when { color:var(--recent); font-weight:600; }
+  .recent .tile { box-shadow:0 0 0 2px var(--ground), 0 0 0 4px var(--on); }
+  aside { background:var(--board); color:var(--letter); border-radius:4px; padding:20px 20px 8px; height:max-content; }
+  aside h2 { font:700 18px/1 'Barlow Condensed'; letter-spacing:.14em; text-transform:uppercase; color:var(--on); margin-bottom:16px; }
+  .flip { display:grid; grid-template-columns:52px 1fr 48px; gap:4px 12px; padding:12px 0; border-top:1px solid #34383A; }
+  .flip .t { font:600 15px/20px 'Barlow Condensed'; letter-spacing:.06em; color:var(--letter); }
+  .flip .k { font:600 15px/20px 'Barlow Condensed'; letter-spacing:.04em; }
+  .flip .env { grid-column:2; font:500 12px/16px Barlow; color:#B9BCBD; }
+  .flip .v { grid-row:1 / span 2; grid-column:3; align-self:center; }
+  .flip .v .tile { width:48px; height:26px; font-size:13px; background:var(--flap); }
+  .flip .v .tile.on { background:var(--on); }
+  .agent { color:var(--on); }
+</style>
+</head>
+<body>
+<header>
+  <div class="mark" aria-label="Palanca"><span>P</span><span>A</span><span>L</span><span>A</span><span>N</span><span>C</span><span>A</span></div>
+  <nav><a class="on" href="#">Applications</a><a href="#">History</a><a href="#">Passkeys</a></nav>
+  <div class="who">HogarHero ▾<a href="#">Sign out</a></div>
+</header>
+<main>
+  <section>
+    <div class="title">
+      <h1>HogarHero</h1>
+      <div class="meta">24 flags · Staging rev 41 · Production rev 17</div>
+      <div class="tools"><input placeholder="Filter by key or description"><button class="btn">New flag</button></div>
+    </div>
+    <table>
+      <thead><tr><th>Flag</th><th>Staging</th><th class="prod">Production<span class="plate">PROTECTED</span></th></tr></thead>
+      <tbody>
+        <tr><td class="flag"><div class="key">new-search-results</div><div class="desc">New search results page</div></td>
+          <td class="recent"><div class="cell"><span class="tile on">ON</span><span class="when">12 min ago · owner</span></div></td>
+          <td><div class="cell"><span class="tile">OFF</span><span class="when">5 days ago · owner</span></div></td></tr>
+        <tr><td class="flag"><div class="key">provider-onboarding-v2</div><div class="desc">Second version of provider onboarding</div></td>
+          <td class="recent"><div class="cell"><span class="tile on">ON</span><span class="when">55 min ago · token claude-staging</span></div></td>
+          <td><div class="cell"><span class="tile">OFF</span><span class="when">created 2 days ago</span></div></td></tr>
+        <tr><td class="flag"><div class="key">operator-denue-imports</div><div class="desc">Operators can start DENUE prospect imports</div></td>
+          <td class="recent"><div class="cell"><span class="tile on">ON</span><span class="when">2 h ago · owner</span></div></td>
+          <td><div class="cell"><span class="tile">OFF</span><span class="when">3 days ago · owner</span></div></td></tr>
+        <tr><td class="flag"><div class="key">quote-pdf-export</div><div class="desc">Customers can export quotes as PDF</div></td>
+          <td><div class="cell"><span class="tile on">ON</span><span class="when">4 days ago · owner</span></div></td>
+          <td class="recent"><div class="cell"><span class="tile on">ON</span><span class="when">yesterday 18:02 · owner</span></div></td></tr>
+        <tr><td class="flag"><div class="key">preview-moderator-access</div><div class="desc">Moderators can open listings in preview</div></td>
+          <td><div class="cell"><span class="tile on">ON</span><span class="when">12 days ago · owner</span></div></td>
+          <td><div class="cell"><span class="tile on">ON</span><span class="when">12 days ago · owner</span></div></td></tr>
+        <tr><td class="flag"><div class="key">review-photos</div><div class="desc">Customers can attach photos to reviews</div></td>
+          <td><div class="cell"><span class="tile on">ON</span><span class="when">8 days ago · owner</span></div></td>
+          <td class="recent"><div class="cell"><span class="tile">OFF</span><span class="when">yesterday 17:40 · owner</span></div></td></tr>
+        <tr><td class="flag"><div class="key">booking-reminders-sms</div><div class="desc">Text reminder 24 hours before a booking</div></td>
+          <td><div class="cell"><span class="tile">OFF</span><span class="when">created 15 days ago</span></div></td>
+          <td><div class="cell"><span class="tile">OFF</span><span class="when">created 15 days ago</span></div></td></tr>
+        <tr><td class="flag"><div class="key">chat-attachments</div><div class="desc">File attachments in customer chat</div></td>
+          <td><div class="cell"><span class="tile on">ON</span><span class="when">20 days ago · owner</span></div></td>
+          <td><div class="cell"><span class="tile">OFF</span><span class="when">created 21 days ago</span></div></td></tr>
+        <tr><td class="flag"><div class="key">payout-weekly</div><div class="desc">Weekly payouts for providers</div></td>
+          <td><div class="cell"><span class="tile on">ON</span><span class="when">a month ago · owner</span></div></td>
+          <td><div class="cell"><span class="tile on">ON</span><span class="when">21 days ago · owner</span></div></td></tr>
+        <tr><td class="flag"><div class="key">map-view-results</div><div class="desc">Show search results on a map</div></td>
+          <td><div class="cell"><span class="tile">OFF</span><span class="when">created a month ago</span></div></td>
+          <td><div class="cell"><span class="tile">OFF</span><span class="when">created a month ago</span></div></td></tr>
+      </tbody>
+    </table>
+  </section>
+  <aside>
+    <h2>Latest flips</h2>
+    <div class="flip"><span class="t">12:41</span><span class="k">new-search-results</span><span class="env">Staging · owner</span><span class="v"><span class="tile on">ON</span></span></div>
+    <div class="flip"><span class="t">11:58</span><span class="k">provider-onboarding-v2</span><span class="env">Staging · <span class="agent">token claude-staging</span></span><span class="v"><span class="tile on">ON</span></span></div>
+    <div class="flip"><span class="t">10:46</span><span class="k">operator-denue-imports</span><span class="env">Staging · owner</span><span class="v"><span class="tile on">ON</span></span></div>
+    <div class="flip"><span class="t">Yest.</span><span class="k">quote-pdf-export</span><span class="env">Production · owner · confirmed</span><span class="v"><span class="tile on">ON</span></span></div>
+    <div class="flip"><span class="t">Yest.</span><span class="k">review-photos</span><span class="env">Production · owner · confirmed</span><span class="v"><span class="tile">OFF</span></span></div>
+    <div class="flip"><span class="t">Wed</span><span class="k">operator-denue-imports</span><span class="env">Production · owner · confirmed</span><span class="v"><span class="tile">OFF</span></span></div>
+  </aside>
+</main>
+</body>
+</html>
