@@ -4,8 +4,10 @@ using Palanca.Applications;
 using Palanca.Commands;
 using Palanca.Components;
 using Palanca.Data;
+using Palanca.Evaluation;
 using Palanca.Flags;
 using Palanca.Owners;
+using Palanca.SdkKeys;
 using Palanca.Security;
 
 if (args is ["healthcheck", ..])
@@ -31,6 +33,9 @@ builder.Services.AddScoped<FlagValueWriter>();
 builder.Services.AddScoped<FlagCommands>();
 builder.Services.AddScoped<ApplicationCommands>();
 builder.Services.AddScoped<BoardQueries>();
+builder.Services.AddScoped<SdkKeyCommands>();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<NewKeyHandoff>();
 builder.Services.AddClientAddress();
 builder.Services.AddOwnerAuthentication();
 builder.Services.AddRazorComponents();
@@ -51,6 +56,7 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check 
 
 app.MapStaticAssets().AllowAnonymous();
 app.MapOwnerEndpoints();
+app.MapEvaluationEndpoints();
 app.MapRazorComponents<App>();
 
 await app.RunAsync();

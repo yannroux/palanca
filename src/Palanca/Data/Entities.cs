@@ -126,6 +126,7 @@ internal enum ChangeAction
     FlagArchived,
     FlagRestored,
     FlagDeleted,
+    SdkKeyCreated,
     SdkKeyRevoked,
     OwnerEnrollmentIssued,
     OwnerRecovered,

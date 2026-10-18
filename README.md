@@ -28,7 +28,7 @@ The browser test drives Google Chrome (the stable channel) with a virtual passke
 - **`Palanca:Network:TrustedProxies`** lists the addresses or CIDR ranges allowed to report the client address (`X-Real-IP`) and the original scheme (`X-Forwarded-Proto`). With none listed, both headers are ignored.
   - Behind Caddy it must be set. The dashboard's antiforgery cookie is Secure-only, so ASP.NET Core fails the sign-in and enrollment pages with an error on any request it does not see as HTTPS. And without it, every client shares Caddy's address in the failed sign-in limit.
   - List Caddy's own address, or a network only Caddy and Palanca share. Any peer in the list can name the client address, so a container on a shared network could lock the owner out with failed attempts made in their name.
-- **`Palanca:FailedAuthentication:PermitLimit`** is how many failed sign-in or enrollment attempts one client address may make within a minute before further attempts get `429`. An IPv6 client is counted by its /64 network.
+- **`Palanca:FailedAuthentication:PermitLimit`** is how many failed sign-in, enrollment, or evaluation API attempts one client address may make within a minute before further attempts get `429`. A public IPv6 client is counted by its /64 network; private IPv6 addresses, such as containers on a Docker network, one by one.
 
 ## Owner sign-in
 
@@ -59,6 +59,32 @@ In development:
   - unprotecting the environment asks first.
 - **Retiring a flag:** a flag starts off everywhere unless it is created with initial values. Archiving it moves it off the board, with its history kept; restoring brings it back with its values, and only an archived flag can be deleted.
 - **Change records:** every change to applications, environments, flags and values is recorded with who made it.
+
+## SDK keys and the evaluation API
+
+An application reads one environment's flags with that environment's SDK key.
+
+- **Getting a key:** create one on the application's SDK keys page. It is shown once, on the page the form leads to; Palanca stores only its SHA-256 hash and the start of the key, `palanca_sdk_` plus six characters.
+- **Rotating keys:** an environment can have several keys. Add a new key, deploy it, then revoke the old one; a revoked key fails from its next request.
+
+```http
+GET /api/v1/flags
+Authorization: Bearer palanca_sdk_...
+```
+
+```json
+{
+  "application": "hogarhero",
+  "environment": "production",
+  "revision": 42,
+  "flags": { "new-search": false, "operator-denue-imports": true }
+}
+```
+
+- **The response:** `200` with `ETag: "<revision>"` and `Cache-Control: no-store`. A request with `If-None-Match: "42"` while the revision is still 42 gets `304` with no body. Archived flags are left out.
+- **Revisions:** they change whenever a value changes, and when a flag is created, archived or restored.
+- **Failures:** a missing, unknown or revoked key gets `401` without saying which. Failed attempts count toward the per-address limit (`Palanca:FailedAuthentication:PermitLimit`), and beyond it requests get `429`.
+- **Access:** consumers call the API over plain HTTP; it needs neither HTTPS nor the dashboard's cookies. It is meant for the private Docker networks, and the deployment's public route, which is outside this repository, does not expose it.
 
 ## Database
 

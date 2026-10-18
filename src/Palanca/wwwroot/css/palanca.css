@@ -1416,6 +1416,65 @@ label.check input {
     justify-content: flex-start;
 }
 
+/* SDK keys */
+
+.page-intro {
+    max-width: 70ch;
+    margin: 0 0 24px;
+    color: var(--muted);
+}
+
+/* A new key, shown once, on the board's own dark panel. One click selects all of it, so it needs no copy script. */
+.secret-once {
+    max-width: 760px;
+    margin-bottom: 32px;
+    padding: 24px;
+    border-radius: 4px;
+    background: var(--board);
+    color: var(--letter);
+}
+
+.secret-once h2 {
+    color: var(--on);
+}
+
+.secret-once p {
+    color: var(--letter-muted);
+}
+
+.secret-once .field-hint {
+    margin: 12px 0 0;
+    color: var(--letter-muted);
+}
+
+.secret {
+    display: block;
+    padding: 12px 14px;
+    border-radius: 3px;
+    background: var(--flap);
+    color: var(--on);
+    font: 500 15px/1.4 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+
+.key-section {
+    margin-top: 40px;
+}
+
+.key-section h2 .plate {
+    margin-left: 10px;
+}
+
+.key-create {
+    margin-top: 16px;
+}
+
+.row-revoked .cell-name,
+.row-revoked td {
+    color: var(--muted);
+}
+
 /* Destructive actions live apart, at the end of a page. */
 
 .danger-zone {
