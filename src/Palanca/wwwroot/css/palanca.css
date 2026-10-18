@@ -19,6 +19,7 @@
     --field-border: #8A8F90;
     --code-ground: #DFE2E1;
     --disabled: #DADDDC;
+    --highlight: #FAFAF7;
 
     /* The board */
     --board: #1C1E1F;
@@ -261,6 +262,16 @@ code {
 .page-meta {
     margin: 0;
     color: var(--muted);
+}
+
+/* A title with its meta line beneath, so the page's tools fit beside it. */
+.page-title {
+    display: grid;
+    gap: 8px;
+}
+
+.page-head:has(> .page-title) {
+    align-items: flex-end;
 }
 
 /* Buttons: rest, hover, focus, pressed and disabled each have their own mark. */
@@ -683,6 +694,805 @@ input:user-invalid {
     text-transform: uppercase;
 }
 
+/* The application switcher in the board bar. A disclosure, so it needs no script. */
+
+.switcher {
+    position: relative;
+}
+
+.switcher summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+    color: var(--letter);
+    font: 600 15px/1 var(--font-board);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    list-style: none;
+    cursor: pointer;
+}
+
+.switcher summary::-webkit-details-marker {
+    display: none;
+}
+
+.switcher summary:hover {
+    color: var(--on);
+}
+
+.switcher[open] summary .icon {
+    transform: rotate(180deg);
+}
+
+.switcher-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 10;
+    min-width: 260px;
+    margin: 0;
+    padding: 8px 0;
+    border: 1px solid var(--flap);
+    border-radius: 4px;
+    background: var(--board);
+    list-style: none;
+}
+
+.switcher-menu a {
+    display: grid;
+    gap: 2px;
+    padding: 8px 16px;
+    color: var(--letter);
+    text-decoration: none;
+}
+
+.switcher-menu a:hover,
+.switcher-menu a[aria-current="page"] {
+    background: var(--flap);
+}
+
+.switcher-name {
+    font: 600 16px/1.2 var(--font-board);
+    letter-spacing: 0.04em;
+}
+
+.switcher-key {
+    color: var(--letter-muted);
+    font-size: 13px;
+}
+
+.switcher-all {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid var(--flap);
+}
+
+/* Page tools: filter, primary action, quiet links. */
+
+.page-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+    margin-left: auto;
+}
+
+.filter {
+    display: flex;
+    gap: 8px;
+}
+
+input[type="search"] {
+    width: 260px;
+    height: var(--control-height);
+    padding: 0 12px;
+    border: 1px solid var(--field-border);
+    border-radius: 3px;
+    background: var(--surface);
+    color: var(--ink);
+    font: 400 15px/1 var(--font-ui);
+}
+
+input[type="search"]:hover {
+    border-color: var(--ink);
+}
+
+.link-quiet {
+    color: var(--ink);
+    font: 600 14px/1 var(--font-board);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-underline-offset: 4px;
+}
+
+.page-meta a {
+    color: var(--muted);
+}
+
+.page-meta a:hover {
+    color: var(--ink);
+}
+
+/* The board: flags as rows, environments as columns, a split-flap tile per value. */
+
+.board-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+    gap: 40px;
+}
+
+.board-main {
+    min-width: 0;
+}
+
+.board {
+    width: 100%;
+    border: 1px solid var(--rule);
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--surface);
+    font-variant-numeric: tabular-nums;
+}
+
+/* With 20 to 100 flags, the environment names and the PROTECTED plate stay in view while scrolling. */
+.board thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--surface);
+    height: 44px;
+    padding: 0 16px;
+    border-bottom: 2px solid var(--ink);
+    color: var(--muted);
+    font: 600 14px/1 var(--font-board);
+    letter-spacing: 0.12em;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.board thead th.env-protected {
+    color: var(--ink);
+}
+
+.board tbody tr {
+    scroll-margin-top: 64px;
+}
+
+.board tbody tr:last-child > * {
+    border-bottom: 0;
+}
+
+.cell-label {
+    display: none;
+}
+
+.key-literal {
+    text-transform: none;
+    letter-spacing: 0.01em;
+}
+
+.board tbody tr:target {
+    background: var(--highlight);
+}
+
+.board td,
+.board tbody th {
+    height: calc(var(--module) * 14);
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--rule);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.board-flag {
+    width: 40%;
+    font-weight: 400;
+}
+
+.flag-key {
+    display: block;
+    color: var(--ink);
+    font: 600 17px/1.2 var(--font-board);
+    letter-spacing: 0.03em;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.flag-key:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.flag-description {
+    display: block;
+    max-width: 60ch;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.cell {
+    white-space: nowrap;
+}
+
+.cell-when {
+    margin-left: 12px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 16px;
+    vertical-align: middle;
+}
+
+.recent .cell-when {
+    color: var(--recent);
+    font-weight: 600;
+}
+
+.plate {
+    display: inline-block;
+    margin-left: 10px;
+    padding: 3px 7px;
+    border-radius: 2px;
+    background: var(--protect);
+    color: var(--surface);
+    font: 700 11px/1 var(--font-board);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    vertical-align: 2px;
+}
+
+.plate-archived {
+    background: var(--muted);
+}
+
+/* A split-flap tile. Its hinge sits behind the letters; yellow means on. */
+
+.tile {
+    position: relative;
+    z-index: 0;
+    display: inline-grid;
+    place-items: center;
+    width: 60px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    background: var(--board);
+    color: var(--letter-off);
+    font: 700 15px/1 var(--font-board);
+    letter-spacing: 0.14em;
+    vertical-align: middle;
+}
+
+.tile::after {
+    content: "";
+    position: absolute;
+    inset: 50% 0 auto;
+    z-index: -1;
+    height: 1px;
+    background: var(--hinge);
+}
+
+.tile.on {
+    background: var(--on);
+    color: var(--ink);
+}
+
+.tile.on::after {
+    background: rgb(0 0 0 / 0.25);
+}
+
+button.tile {
+    cursor: pointer;
+}
+
+button.tile:hover {
+    outline: 2px solid var(--muted);
+    outline-offset: 2px;
+}
+
+button.tile:active {
+    transform: translateY(1px);
+}
+
+.recent .tile {
+    outline: 2px solid var(--on);
+    outline-offset: 2px;
+}
+
+button.tile:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+}
+
+.tile-small {
+    width: 48px;
+    height: 24px;
+    font-size: 13px;
+}
+
+/* The signature: after a toggle, the old flap folds down once and the new value shows. */
+
+/* The falling flap shows the top half of the old value's letters, as a real split-flap does. */
+.tile.flipped::before {
+    content: attr(data-was);
+    position: absolute;
+    inset: 0 0 50%;
+    z-index: 1;
+    overflow: hidden;
+    border-radius: 3px 3px 0 0;
+    background: var(--on);
+    color: var(--ink);
+    line-height: 30px;
+    text-align: center;
+    transform-origin: bottom;
+    animation: flap-fall 320ms cubic-bezier(0.55, 0, 0.75, 0.2) both;
+}
+
+.tile.on.flipped::before {
+    background: var(--board);
+    color: var(--letter-off);
+}
+
+/* The new value's letters appear only once the old flap has fallen, so the two never overlap. */
+.tile.flipped {
+    animation: flap-letters 320ms steps(1, end) backwards;
+}
+
+@keyframes flap-letters {
+    from {
+        color: transparent;
+    }
+}
+
+@keyframes flap-fall {
+    from {
+        transform: perspective(120px) rotateX(0deg);
+    }
+
+    to {
+        transform: perspective(120px) rotateX(-90deg);
+    }
+}
+
+/* Archived flags keep a place at the end of the board, printed grey. */
+
+.archived {
+    margin-top: 32px;
+}
+
+.archived summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: var(--control-height);
+    color: var(--muted);
+    font: 600 15px/1 var(--font-board);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    list-style: none;
+    cursor: pointer;
+}
+
+.archived summary::-webkit-details-marker {
+    display: none;
+}
+
+.archived summary .icon {
+    transform: rotate(-90deg);
+}
+
+.archived[open] summary .icon {
+    transform: none;
+}
+
+.archived summary:hover {
+    color: var(--ink);
+}
+
+.archived-count {
+    display: inline-block;
+    min-width: 24px;
+    padding: 4px 7px;
+    font-size: 13px;
+    line-height: 1;
+    border-radius: 2px;
+    background: var(--disabled);
+    color: var(--ink);
+    text-align: center;
+}
+
+.archived-note {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.board-archived .flag-key,
+.board-archived .flag-description {
+    color: var(--muted);
+}
+
+.board-archived .cell-when {
+    margin: 0;
+}
+
+.board-archived .cell-actions {
+    width: 1%;
+}
+
+/* Latest flips: the board's own departures list. */
+
+.flips {
+    padding: 20px 20px 8px;
+    border-radius: 4px;
+    background: var(--board);
+    color: var(--letter);
+}
+
+.flips h2 {
+    margin-bottom: 12px;
+    color: var(--on);
+    font-size: 18px;
+    letter-spacing: 0.14em;
+}
+
+.flips-empty {
+    color: var(--letter-muted);
+    font-size: 14px;
+}
+
+.flips-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Each entry reads like a departure: the time in its own column, then what changed, then the value. */
+.flip {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 2px 12px;
+    padding: 12px 0;
+    border-top: 1px solid #34383A;
+}
+
+.flip-time {
+    grid-row: 1 / span 2;
+    grid-column: 1;
+    color: var(--letter);
+    font: 600 15px/20px var(--font-board);
+    letter-spacing: 0.06em;
+}
+
+.flip-key {
+    grid-column: 2;
+    font: 600 16px/1.25 var(--font-board);
+    letter-spacing: 0.03em;
+    overflow-wrap: anywhere;
+}
+
+.flip-detail {
+    grid-column: 2;
+    color: var(--letter-muted);
+    font-size: 13px;
+}
+
+.flip-agent .flip-detail {
+    color: var(--on);
+}
+
+.flip .tile {
+    grid-row: 1 / span 2;
+    grid-column: 3;
+    align-self: center;
+    background: var(--flap);
+}
+
+.flip .tile.on {
+    background: var(--on);
+}
+
+/* Applications on the home page: one line each, not cards. */
+
+.app-list {
+    max-width: 1100px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--rule);
+    border-bottom: 0;
+    background: var(--surface);
+    list-style: none;
+}
+
+.app-row {
+    display: grid;
+    grid-template-columns: minmax(160px, 1.2fr) minmax(120px, 1fr) minmax(0, 2fr) auto;
+    align-items: center;
+    gap: 8px 24px;
+    min-height: calc(var(--module) * 16);
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--rule);
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.app-row:hover {
+    background: var(--highlight);
+}
+
+.app-row:hover .app-name {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.app-name {
+    font: 700 22px/1.1 var(--font-board);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.app-key,
+.app-count,
+.app-none {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.app-environments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.env-tag {
+    padding: 3px 8px;
+    border: 1px solid var(--field-border);
+    border-radius: 2px;
+    font: 600 12px/1.2 var(--font-board);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.env-tag-protected {
+    border-color: var(--protect);
+    color: var(--protect);
+}
+
+/* Forms */
+
+.form-section {
+    max-width: 760px;
+    margin-top: 48px;
+}
+
+.form-section > p {
+    max-width: 65ch;
+    color: var(--muted);
+}
+
+.field-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px 16px;
+}
+
+.field-row > .button,
+.field-row > .check-inline {
+    margin-top: 22px;
+}
+
+/* A row whose field has no visible label lines its button up with the field. */
+.field-row-bare > .button {
+    margin-top: 0;
+}
+
+.cell-status {
+    color: var(--muted);
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.field {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.field-row .field {
+    flex: 1 1 220px;
+}
+
+.field-hint {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.form-stack {
+    display: grid;
+    gap: 24px;
+    max-width: 640px;
+}
+
+.form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+textarea {
+    width: 100%;
+    min-height: 96px;
+    padding: 10px 12px;
+    border: 1px solid var(--field-border);
+    border-radius: 3px;
+    background: var(--surface);
+    color: var(--ink);
+    font: 400 15px/1.5 var(--font-ui);
+    resize: vertical;
+}
+
+textarea:hover {
+    border-color: var(--ink);
+}
+
+textarea::placeholder {
+    color: var(--placeholder);
+}
+
+legend {
+    margin-bottom: 8px;
+    padding: 0;
+    color: var(--muted);
+    font: 600 14px/1 var(--font-board);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+label.check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 6px 0;
+    color: var(--ink);
+    font: 400 15px/1.3 var(--font-ui);
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+label.check input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--board);
+}
+
+.check-inline {
+    height: var(--control-height);
+}
+
+.subhead {
+    margin: 40px 0 12px;
+    color: var(--ink);
+    font: 700 16px/1.1 var(--font-board);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.empty-inline {
+    color: var(--muted);
+}
+
+.button-protect {
+    min-width: 116px;
+}
+
+/* In settings, routine actions sit close together and archiving stands apart. */
+.form-section .row-actions {
+    gap: 8px;
+}
+
+.form-section .row-actions > .button-danger {
+    margin-left: 16px;
+}
+
+.button-icon {
+    width: var(--control-height);
+    padding: 0;
+}
+
+.move {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.row-actions-start {
+    justify-content: flex-start;
+}
+
+/* Destructive actions live apart, at the end of a page. */
+
+.danger-zone {
+    max-width: 760px;
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+}
+
+.danger-zone p {
+    max-width: 65ch;
+    color: var(--muted);
+}
+
+/* A flag page's title is the flag key, exactly as code reads it. */
+
+.flag-title {
+    text-transform: none;
+    letter-spacing: 0.01em;
+    overflow-wrap: anywhere;
+}
+
+/* The protected-environment confirmation as a page. */
+
+.confirm-page {
+    max-width: 560px;
+    padding: 32px;
+    border: 1px solid var(--ink);
+    border-radius: 4px;
+    background: var(--surface);
+}
+
+.confirm-page h1 {
+    margin-bottom: 20px;
+    font-size: 30px;
+    text-transform: none;
+    letter-spacing: 0.01em;
+}
+
+.confirm-facts {
+    display: grid;
+    gap: 8px;
+    margin: 0 0 20px;
+}
+
+.confirm .confirm-facts div {
+    grid-template-columns: 120px 1fr;
+}
+
+.confirm-facts div {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    align-items: center;
+}
+
+.confirm-facts dt {
+    color: var(--muted);
+    font: 600 13px/1 var(--font-board);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.confirm-facts dd {
+    margin: 0;
+    font-weight: 600;
+}
+
+@media (max-width: 1200px) {
+    .board-page {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .flips {
+        max-width: 640px;
+    }
+}
+
 /* Phone width: same world, one column. */
 
 @media (max-width: 720px) {
@@ -768,10 +1578,106 @@ input:user-invalid {
     .inline-form label {
         margin-bottom: -4px;
     }
+
+    .page-tools {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .filter,
+    input[type="search"] {
+        flex: 1 1 auto;
+        width: auto;
+        min-width: 0;
+    }
+
+    /* The board: one block per flag, its environments' tiles beneath its key. */
+    .board thead {
+        display: none;
+    }
+
+    .board,
+    .board tbody,
+    .board tr,
+    .board tbody th,
+    .board td {
+        display: block;
+    }
+
+    .board tr {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .board tbody th,
+    .board td {
+        height: auto;
+        padding: 4px 0;
+        border: 0;
+    }
+
+    .board-flag {
+        width: auto;
+        margin-bottom: 4px;
+    }
+
+    .board td.cell {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        white-space: normal;
+    }
+
+    .board .cell-label {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 6px;
+        width: 112px;
+        flex: none;
+        color: var(--muted);
+        font: 600 13px/1.2 var(--font-board);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    .board .cell-label .plate {
+        margin-left: 0;
+    }
+
+    .cell-when {
+        margin-left: 0;
+    }
+
+    .app-row {
+        grid-template-columns: 1fr auto;
+    }
+
+    .app-environments {
+        grid-column: 1 / -1;
+    }
+
+    .confirm-page {
+        padding: 24px 20px;
+    }
+
+    .confirm-facts div {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .button {
         transition: none;
+    }
+
+    .tile.flipped,
+    .tile.flipped::before {
+        animation: none;
+    }
+
+    .tile.flipped::before {
+        display: none;
     }
 }

@@ -1,0 +1,116 @@
+@page "/apps/{AppKey}/flags/new"
+@using Palanca.Applications
+@using Palanca.Flags
+@inject BoardQueries Queries
+@inject FlagCommands Flags
+@inject NavigationManager Navigation
+
+<PageTitle>New flag · Palanca</PageTitle>
+<SectionContent SectionName="@MainLayout.BoardContext"><AppSwitcher Current="@AppKey" /></SectionContent>
+
+@if (application is null)
+{
+    <div class="empty">
+        <p class="empty-title">No such application</p>
+        <p><a href="/">See all applications</a>.</p>
+    </div>
+    return;
+}
+
+<div class="page-head">
+    <h1>New flag</h1>
+    <p class="page-meta"><a href="/apps/@AppKey">@application.Name</a></p>
+</div>
+
+@if (error is not null)
+{
+    <Notice Kind="NoticeKind.Error">@error</Notice>
+}
+
+<form method="post" @formname="new-flag" @onsubmit="CreateAsync" class="form-stack">
+    <AntiforgeryToken />
+    <div class="field">
+        <label for="flag-key">Key</label>
+        <input id="flag-key" name="Input.Key" value="@Input?.Key" required maxlength="64" pattern="[a-z][a-z0-9\-]*"
+               autocomplete="off" spellcheck="false" placeholder="new-search-results" aria-describedby="flag-key-hint" />
+        <p class="field-hint" id="flag-key-hint">What the code reads. Lowercase letters, digits, and hyphens. It cannot change later.</p>
+    </div>
+    <div class="field">
+        <label for="flag-description">Description</label>
+        <textarea id="flag-description" name="Input.Description" required maxlength="1000" rows="3"
+                  placeholder="What turning it on changes, and when it can be removed.">@Input?.Description</textarea>
+    </div>
+    @if (application.Environments.Count > 0)
+    {
+        <fieldset class="field">
+            <legend>Starts on in</legend>
+            <p class="field-hint">Leave everything unchecked to start off everywhere. Protected environments always start off; turn the flag on there from the board, which asks for confirmation.</p>
+            @foreach (var environment in application.Environments)
+            {
+                <label class="check">
+                    <input type="checkbox" name="Input.On" value="@environment.Key" checked="@(Input?.On?.Contains(environment.Key) == true)" disabled="@environment.IsProtected" />
+                    @environment.Name
+                    @if (environment.IsProtected)
+                    {
+                        <span class="plate">Protected</span>
+                    }
+                </label>
+            }
+        </fieldset>
+    }
+    <div class="form-actions">
+        <button type="submit" class="button">Create flag</button>
+        <a class="button button-quiet" href="/apps/@AppKey">Cancel</a>
+    </div>
+</form>
+
+@code {
+    private ApplicationSummary? application;
+    private string? error;
+
+    [Parameter]
+    public string AppKey { get; set; } = "";
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromForm(FormName = "new-flag")]
+    private NewFlag? Input { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        application = await Queries.ApplicationAsync(AppKey, HttpContext.RequestAborted);
+        if (application is null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        var key = Input?.Key?.Trim();
+        if (application!.Environments.Any(e => e.IsProtected && Input?.On?.Contains(e.Key) == true))
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+            error = "A new flag starts off in protected environments. Turn it on there from the board, which asks for confirmation.";
+            return;
+        }
+
+        var result = await Flags.CreateAsync(AppKey, key, Input?.Description, Input?.On ?? [], DashboardActor.Of(HttpContext), HttpContext.RequestAborted);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo($"/apps/{AppKey}?status=created#flag-{key}");
+            return;
+        }
+
+        HttpContext.Response.StatusCode = result.Status == CommandStatus.Conflict ? StatusCodes.Status409Conflict : StatusCodes.Status400BadRequest;
+        error = result.Message;
+    }
+
+    private sealed class NewFlag
+    {
+        public string? Key { get; set; }
+        public string? Description { get; set; }
+        public string[]? On { get; set; }
+    }
+}

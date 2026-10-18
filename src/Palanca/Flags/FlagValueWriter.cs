@@ -3,14 +3,14 @@ using Palanca.Data;
 
 namespace Palanca.Flags;
 
-/// <summary>Who made a change, and through which surface.</summary>
-internal sealed record ChangeActor(ChangeSource Source, string Name);
-
 internal enum SetFlagValueOutcome
 {
     Changed,
     Unchanged,
     NotFound,
+
+    /// <summary>The environment is protected and the change was not confirmed (FLG-014); nothing changed.</summary>
+    ConfirmationRequired,
 }
 
 /// <param name="Revision">The environment's revision after the call.</param>
@@ -23,11 +23,15 @@ internal sealed record SetFlagValueResult(SetFlagValueOutcome Outcome, long Revi
 /// </summary>
 internal sealed class FlagValueWriter(PalancaDbContext db, TimeProvider timeProvider)
 {
-    private const string On = "on";
-    private const string Off = "off";
+    public const string On = "on";
+    public const string Off = "off";
 
+    /// <param name="confirmed">
+    /// Whether a change to a protected environment was confirmed. The dashboard asks the owner first; the
+    /// management API's read-write tokens may change protected environments by design.
+    /// </param>
     public async Task<SetFlagValueResult> SetAsync(
-        string applicationKey, string flagKey, string environmentKey, bool enabled, ChangeActor actor, CancellationToken cancellationToken)
+        string applicationKey, string flagKey, string environmentKey, bool enabled, ChangeActor actor, bool confirmed, CancellationToken cancellationToken)
     {
         // A non-deferred SQLite transaction holds the write lock from the start, so the reads
         // below cannot go stale before the write: concurrent writers queue instead of racing.
@@ -51,6 +55,12 @@ internal sealed class FlagValueWriter(PalancaDbContext db, TimeProvider timeProv
         if (current == enabled)
         {
             return new SetFlagValueResult(SetFlagValueOutcome.Unchanged, environment.Revision);
+        }
+
+        // Checked inside the transaction, so protection added a moment ago still applies.
+        if (environment.IsProtected && !confirmed)
+        {
+            return new SetFlagValueResult(SetFlagValueOutcome.ConfirmationRequired, environment.Revision);
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;

@@ -1,0 +1,36 @@
+@using Palanca.Applications
+@inject BoardQueries Queries
+
+@* Moves between applications from any of their pages. A disclosure, so it needs no script. *@
+<details class="switcher">
+    <summary><span class="visually-hidden">Application: </span>@current?.Name<Icon Name="chevron-down" /></summary>
+    <ul class="switcher-menu">
+        @foreach (var application in applications)
+        {
+            <li>
+                <a href="/apps/@application.Key" aria-current="@(application.Key == Current ? "page" : null)">
+                    <span class="switcher-name">@application.Name</span>
+                    <span class="switcher-key">@application.Key</span>
+                </a>
+            </li>
+        }
+        <li class="switcher-all"><a href="/">All applications</a></li>
+    </ul>
+</details>
+
+@code {
+    private List<ApplicationSummary> applications = [];
+    private ApplicationSummary? current;
+
+    [Parameter, EditorRequired]
+    public string Current { get; set; } = "";
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        applications = await Queries.ApplicationsAsync(HttpContext.RequestAborted);
+        current = applications.Find(a => a.Key == Current);
+    }
+}

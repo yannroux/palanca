@@ -47,6 +47,19 @@ In development:
 2. Start the service with `dotnet run --project src/Palanca`.
 3. Run `dotnet run --project src/Palanca -- owner enroll you@example.com`, and open the link it prints.
 
+## Dashboard
+
+- **Applications:** the home page lists them. Register one with a key and a name; the key never changes.
+- **Environments:** add them in the application's Settings. Each one becomes a column of the board, in the order set there.
+- **The board:** shows every flag as a row, with an ON/OFF tile per environment. Clicking a tile changes that value; values changed in the last 24 hours are ringed in yellow, and the latest value changes are listed beside the board.
+- **Protected environments:** a protected environment, such as production, never starts serving a new value from the dashboard without a confirmation:
+  - turning a flag on or off there asks first;
+  - a new flag always starts off there;
+  - restoring an archived flag that is on there asks first;
+  - unprotecting the environment asks first.
+- **Retiring a flag:** a flag starts off everywhere unless it is created with initial values. Archiving it moves it off the board, with its history kept; restoring brings it back with its values, and only an archived flag can be deleted.
+- **Change records:** every change to applications, environments, flags and values is recorded with who made it.
+
 ## Database
 
 Palanca stores everything in one SQLite file in WAL mode. At startup it applies pending migrations, and it first copies an existing database to the backup directory.

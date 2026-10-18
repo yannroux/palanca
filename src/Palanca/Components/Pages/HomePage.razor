@@ -1,11 +1,115 @@
 @page "/"
+@using Palanca.Applications
+@inject BoardQueries Queries
+@inject ApplicationCommands Commands
+@inject NavigationManager Navigation
 
 <PageTitle>Applications · Palanca</PageTitle>
 
 <div class="page-head">
     <h1>Applications</h1>
+    @if (applications.Count > 0)
+    {
+        <p class="page-meta">@Count(applications.Count, "application")</p>
+    }
 </div>
-<div class="empty">
-    <p class="empty-title">No applications yet</p>
-    <p>Application management is not built yet.</p>
-</div>
+
+@if (Status == "archived")
+{
+    <Notice Kind="NoticeKind.Success">Application archived and its SDK keys revoked.</Notice>
+}
+
+@if (applications.Count == 0)
+{
+    <div class="empty">
+        <p class="empty-title">No applications yet</p>
+        <p>Register the first application below, then add its environments.</p>
+    </div>
+}
+else
+{
+    <ul class="app-list">
+        @foreach (var application in applications)
+        {
+            <li>
+                <a class="app-row" href="/apps/@application.Key">
+                    <span class="app-name">@application.Name</span>
+                    <span class="app-key">@application.Key</span>
+                    <span class="app-environments">
+                        @if (application.Environments.Count == 0)
+                        {
+                            <span class="app-none">No environments</span>
+                        }
+                        @foreach (var environment in application.Environments)
+                        {
+                            <span class="env-tag @(environment.IsProtected ? "env-tag-protected" : null)">@environment.Name<span class="visually-hidden">@(environment.IsProtected ? ", protected" : null)</span></span>
+                        }
+                    </span>
+                    <span class="app-count">@Count(application.FlagCount, "flag")</span>
+                </a>
+            </li>
+        }
+    </ul>
+}
+
+<section class="form-section" aria-labelledby="new-application-title">
+    <h2 id="new-application-title">Register an application</h2>
+    <p>The key is what consuming applications and SDK keys use. It cannot change later.</p>
+    @if (error is not null)
+    {
+        <Notice Kind="NoticeKind.Error">@error</Notice>
+    }
+    <form method="post" @formname="new-application" @onsubmit="CreateAsync" class="field-row">
+        <AntiforgeryToken />
+        <div class="field">
+            <label for="application-key">Key</label>
+            <input id="application-key" name="Input.Key" value="@Input?.Key" required maxlength="64" pattern="[a-z][a-z0-9\-]*"
+                   autocomplete="off" spellcheck="false" placeholder="hogarhero" aria-describedby="application-key-hint" />
+            <p class="field-hint" id="application-key-hint">Lowercase letters, digits, and hyphens.</p>
+        </div>
+        <div class="field">
+            <label for="application-name">Name</label>
+            <input id="application-name" name="Input.Name" value="@Input?.Name" required maxlength="200" autocomplete="off" placeholder="HogarHero" />
+        </div>
+        <button type="submit" class="button">Register</button>
+    </form>
+</section>
+
+@code {
+    private List<ApplicationSummary> applications = [];
+    private string? error;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromQuery(Name = "status")]
+    private string? Status { get; set; }
+
+    [SupplyParameterFromForm(FormName = "new-application")]
+    private NewApplication? Input { get; set; }
+
+    protected override async Task OnInitializedAsync() =>
+        applications = await Queries.ApplicationsAsync(HttpContext.RequestAborted);
+
+    private async Task CreateAsync()
+    {
+        var key = Input?.Key?.Trim();
+        var result = await Commands.CreateAsync(key, Input?.Name, DashboardActor.Of(HttpContext), HttpContext.RequestAborted);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo($"/apps/{key}/settings?status=created");
+            return;
+        }
+
+        HttpContext.Response.StatusCode = result.Status == CommandStatus.Conflict ? StatusCodes.Status409Conflict : StatusCodes.Status400BadRequest;
+        error = result.Message;
+    }
+
+    private static string Count(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
+
+    private sealed class NewApplication
+    {
+        public string? Key { get; set; }
+        public string? Name { get; set; }
+    }
+}

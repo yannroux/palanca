@@ -4,9 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light" />
-    <link rel="stylesheet" href="@Assets["css/palanca.css"]" />
-    <link rel="icon" href="@Assets["favicon.svg"]" type="image/svg+xml" />
-    <script type="module" src="@Assets["js/passkeys.js"]"></script>
+    @* Root-relative: the CSP forbids a <base> element, and pages live at several depths. *@
+    <link rel="stylesheet" href="/@Assets["css/palanca.css"]" />
+    <link rel="icon" href="/@Assets["favicon.svg"]" type="image/svg+xml" />
+    <script type="module" src="/@Assets["js/passkeys.js"]"></script>
     <HeadOutlet />
 </head>
 <body>

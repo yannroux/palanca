@@ -1,0 +1,279 @@
+@page "/apps/{AppKey}/settings"
+@using Palanca.Applications
+@inject BoardQueries Queries
+@inject ApplicationCommands Commands
+@inject NavigationManager Navigation
+
+<PageTitle>Settings · @(application?.Name ?? AppKey) · Palanca</PageTitle>
+<SectionContent SectionName="@MainLayout.BoardContext"><AppSwitcher Current="@AppKey" /></SectionContent>
+
+@if (application is null)
+{
+    <div class="empty">
+        <p class="empty-title">No such application</p>
+        <p>It does not exist or has been archived. <a href="/">See all applications</a>.</p>
+    </div>
+    return;
+}
+
+<div class="page-head">
+    <h1>Settings</h1>
+    <p class="page-meta"><a href="/apps/@AppKey">@application.Name</a> · key <code>@application.Key</code></p>
+</div>
+
+@if (message is not null)
+{
+    <Notice Kind="kind">@message</Notice>
+}
+
+<section class="form-section" aria-labelledby="name-title">
+    <h2 id="name-title">Name</h2>
+    <form method="post" @formname="rename-application" @onsubmit="RenameAsync" class="field-row field-row-bare">
+        <AntiforgeryToken />
+        <div class="field">
+            <label for="application-name" class="visually-hidden">Application name</label>
+            <input id="application-name" name="ApplicationName" value="@(ApplicationName ?? application.Name)" required maxlength="200" autocomplete="off" />
+        </div>
+        <button type="submit" class="button button-quiet">Save name</button>
+    </form>
+</section>
+
+<section class="form-section" aria-labelledby="environments-title">
+    <h2 id="environments-title">Environments</h2>
+    <p>Each environment is a column of the board, in this order. Toggling a flag in a protected environment asks for confirmation.</p>
+    @if (application.Environments.Count == 0)
+    {
+        <p class="empty-inline">No environments yet. Add staging and production below.</p>
+    }
+    else
+    {
+        <table class="ledger">
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Key</th>
+                    <th scope="col">Protection</th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (var index = 0; index < application.Environments.Count; index++)
+                {
+                    var environment = application.Environments[index];
+                    // Keys never contain "_", so these ids cannot collide with each other or with the page's own.
+                    var popover = $"archive_{environment.Key}";
+                    var unprotectPopover = $"unprotect_{environment.Key}";
+                    <tr>
+                        <td class="cell-name">@environment.Name</td>
+                        <td data-label="Key"><code>@environment.Key</code></td>
+                        <td data-label="Protection">
+                            @if (environment.IsProtected)
+                            {
+                                <span class="plate">Protected</span>
+                            }
+                            else
+                            {
+                                <span class="cell-status">Not protected</span>
+                            }
+                        </td>
+                        <td class="cell-actions">
+                            <form method="post" @formname="@($"environment-{environment.Key}")" @onsubmit="EnvironmentAsync" class="row-actions">
+                                <AntiforgeryToken />
+                                <input type="hidden" name="EnvironmentKey" value="@environment.Key" />
+                                <details class="rename">
+                                    <summary>Rename</summary>
+                                    <div class="rename-form">
+                                        <label for="name-@environment.Key" class="visually-hidden">New name for @environment.Name</label>
+                                        <input id="name-@environment.Key" name="EnvironmentName" value="@environment.Name" required maxlength="200" autocomplete="off" />
+                                        <button type="submit" name="EnvironmentAction" value="rename" class="button button-quiet">Save name</button>
+                                    </div>
+                                </details>
+                                <div class="move" role="group" aria-label="Column order for @environment.Name">
+                                    <button type="submit" name="EnvironmentAction" value="left" formnovalidate class="button button-quiet button-icon" disabled="@(index == 0)" aria-label="Move @environment.Name left">
+                                        <Icon Name="chevron-left" />
+                                    </button>
+                                    <button type="submit" name="EnvironmentAction" value="right" formnovalidate class="button button-quiet button-icon" disabled="@(index == application.Environments.Count - 1)" aria-label="Move @environment.Name right">
+                                        <Icon Name="chevron-right" />
+                                    </button>
+                                </div>
+                                @if (environment.IsProtected)
+                                {
+                                    <button type="button" class="button button-quiet button-protect" popovertarget="@unprotectPopover">Unprotect</button>
+                                    <div popover id="@unprotectPopover" class="confirm" role="dialog" aria-labelledby="@($"{unprotectPopover}-title")">
+                                        <p id="@($"{unprotectPopover}-title")" class="confirm-title">Unprotect @environment.Name?</p>
+                                        <p>Toggles in it will no longer ask for confirmation.</p>
+                                        <div class="confirm-actions">
+                                            <button type="submit" name="EnvironmentAction" value="unprotect" formnovalidate class="button button-danger-solid">Unprotect</button>
+                                            <button type="button" popovertarget="@unprotectPopover" popovertargetaction="hide" class="button button-quiet">Keep it protected</button>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <button type="submit" name="EnvironmentAction" value="protect" formnovalidate class="button button-quiet button-protect">Protect</button>
+                                }
+                                <button type="button" class="button button-danger" popovertarget="@popover">Archive</button>
+                                <div popover id="@popover" class="confirm" role="dialog" aria-labelledby="@($"{popover}-title")">
+                                    <p id="@($"{popover}-title")" class="confirm-title">Archive @environment.Name?</p>
+                                    <p>Its column leaves the board and its SDK keys are revoked, so its applications fall back to their defaults.</p>
+                                    <div class="confirm-actions">
+                                        <button type="submit" name="EnvironmentAction" value="archive" formnovalidate class="button button-danger-solid">Archive environment</button>
+                                        <button type="button" popovertarget="@popover" popovertargetaction="hide" class="button button-quiet">Keep it</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <h3 class="subhead">Add an environment</h3>
+    <form method="post" @formname="new-environment" @onsubmit="CreateEnvironmentAsync" class="field-row">
+        <AntiforgeryToken />
+        <div class="field">
+            <label for="environment-key">Key</label>
+            <input id="environment-key" name="NewEnvironment.Key" value="@NewEnvironment?.Key" required maxlength="64" pattern="[a-z][a-z0-9\-]*"
+                   autocomplete="off" spellcheck="false" placeholder="staging" />
+        </div>
+        <div class="field">
+            <label for="environment-name">Name</label>
+            <input id="environment-name" name="NewEnvironment.Name" value="@NewEnvironment?.Name" required maxlength="200" autocomplete="off" placeholder="Staging" />
+        </div>
+        <label class="check check-inline">
+            <input type="checkbox" name="NewEnvironment.Protected" value="true" checked="@(NewEnvironment?.Protected == true)" />
+            Protected
+        </label>
+        <button type="submit" class="button">Add environment</button>
+    </form>
+</section>
+
+<section class="danger-zone" aria-labelledby="archive-title">
+    <h2 id="archive-title">Archive application</h2>
+    <p>The application leaves the dashboard and every SDK key of its environments is revoked, so its applications fall back to their defaults. Its history stays.</p>
+    <form method="post" @formname="archive-application" @onsubmit="ArchiveAsync">
+        <AntiforgeryToken />
+        <button type="button" class="button button-danger" popovertarget="archive-application">Archive @application.Name</button>
+        <div popover id="archive-application" class="confirm" role="dialog" aria-labelledby="archive-application-title">
+            <p id="archive-application-title" class="confirm-title">Archive @application.Name?</p>
+            <p>It cannot be undone from the dashboard.</p>
+            <div class="confirm-actions">
+                <button type="submit" class="button button-danger-solid">Archive application</button>
+                <button type="button" popovertarget="archive-application" popovertargetaction="hide" class="button button-quiet">Keep it</button>
+            </div>
+        </div>
+    </form>
+</section>
+
+@code {
+    private ApplicationSummary? application;
+    private string? message;
+    private NoticeKind kind;
+
+    [Parameter]
+    public string AppKey { get; set; } = "";
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromQuery(Name = "status")]
+    private string? Status { get; set; }
+
+    [SupplyParameterFromForm(FormName = "rename-application")]
+    private string? ApplicationName { get; set; }
+
+    // Each environment row has its own form; these are bound from whichever was posted.
+    [SupplyParameterFromForm]
+    private string? EnvironmentKey { get; set; }
+
+    [SupplyParameterFromForm]
+    private string? EnvironmentAction { get; set; }
+
+    [SupplyParameterFromForm]
+    private string? EnvironmentName { get; set; }
+
+    [SupplyParameterFromForm(FormName = "new-environment")]
+    private NewEnvironmentInput? NewEnvironment { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        application = await Queries.ApplicationAsync(AppKey, HttpContext.RequestAborted);
+        if (application is null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        (message, kind) = Status switch
+        {
+            "created" => ($"{application.Name} is registered. Add its environments to start using flags.", NoticeKind.Success),
+            "saved" => ("Saved.", NoticeKind.Success),
+            "environment-added" => ("Environment added. Every flag starts off in it.", NoticeKind.Success),
+            "environment-archived" => ("Environment archived and its SDK keys revoked.", NoticeKind.Success),
+            _ => (null, NoticeKind.Info),
+        };
+    }
+
+    private Task RenameAsync() =>
+        HandleAsync(Commands.RenameAsync(AppKey, ApplicationName, DashboardActor.Of(HttpContext), HttpContext.RequestAborted), "saved");
+
+    private Task CreateEnvironmentAsync() =>
+        HandleAsync(Commands.CreateEnvironmentAsync(
+            AppKey, NewEnvironment?.Key?.Trim(), NewEnvironment?.Name, NewEnvironment?.Protected == true,
+            DashboardActor.Of(HttpContext), HttpContext.RequestAborted), "environment-added");
+
+    private Task EnvironmentAsync()
+    {
+        var actor = DashboardActor.Of(HttpContext);
+        var cancellationToken = HttpContext.RequestAborted;
+        var key = EnvironmentKey ?? "";
+        return EnvironmentAction switch
+        {
+            "rename" => HandleAsync(Commands.RenameEnvironmentAsync(AppKey, key, EnvironmentName, actor, cancellationToken), "saved"),
+            "left" => HandleAsync(Commands.MoveEnvironmentAsync(AppKey, key, -1, actor, cancellationToken), null),
+            "right" => HandleAsync(Commands.MoveEnvironmentAsync(AppKey, key, 1, actor, cancellationToken), null),
+            "protect" => HandleAsync(Commands.SetProtectedAsync(AppKey, key, true, actor, cancellationToken), "saved"),
+            "unprotect" => HandleAsync(Commands.SetProtectedAsync(AppKey, key, false, actor, cancellationToken), "saved"),
+            "archive" => HandleAsync(Commands.ArchiveEnvironmentAsync(AppKey, key, actor, cancellationToken), "environment-archived"),
+            _ => HandleAsync(Task.FromResult(CommandResult.Invalid("Unknown action.")), null),
+        };
+    }
+
+    private async Task ArchiveAsync()
+    {
+        var result = await Commands.ArchiveAsync(AppKey, DashboardActor.Of(HttpContext), HttpContext.RequestAborted);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo("/?status=archived");
+            return;
+        }
+
+        Fail(result);
+    }
+
+    private async Task HandleAsync(Task<CommandResult> command, string? status)
+    {
+        var result = await command;
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo($"/apps/{AppKey}/settings{(status is null ? null : $"?status={status}")}");
+            return;
+        }
+
+        Fail(result);
+    }
+
+    private void Fail(CommandResult result)
+    {
+        HttpContext.Response.StatusCode = result.Status == CommandStatus.Conflict ? StatusCodes.Status409Conflict : StatusCodes.Status400BadRequest;
+        (message, kind) = (result.Message, NoticeKind.Error);
+    }
+
+    private sealed class NewEnvironmentInput
+    {
+        public string? Key { get; set; }
+        public string? Name { get; set; }
+        public bool Protected { get; set; }
+    }
+}
