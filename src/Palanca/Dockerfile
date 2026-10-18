@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0.302-noble AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.402-noble AS build
 WORKDIR /src
 COPY .editorconfig Directory.Build.props Directory.Packages.props global.json ./
 COPY src/Palanca/Palanca.csproj src/Palanca/
