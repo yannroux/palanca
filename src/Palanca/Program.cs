@@ -25,6 +25,11 @@ if (args is ["owner", .. var ownerArgs])
     return await OwnerCommand.RunAsync(ownerArgs, Console.Out, Console.Error, CancellationToken.None);
 }
 
+if (args is ["backup", ..] or ["restore", ..])
+{
+    return await BackupCommand.RunAsync(args, Console.Out, Console.Error, CancellationToken.None);
+}
+
 // In the container TMPDIR points into the data volume, which may predate the directory.
 Directory.CreateDirectory(Path.GetTempPath());
 

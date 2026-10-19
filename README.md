@@ -179,6 +179,29 @@ Palanca stores everything in one SQLite file in WAL mode. At startup it applies 
 |---------|-------------|-----------|
 | `Palanca:Database:FilePath` | `src/Palanca/.data/palanca.db` | `/data/palanca.db` |
 | `Palanca:Database:BackupDirectory` | `src/Palanca/.data/backups` | `/data/backups` |
+| `Palanca:Database:BackupRetentionDays` | 14 | 14 |
+
+### Backups
+
+Point the backup directory at a host directory rather than the data volume, so losing the volume does not lose the backups too. Then run the backup daily, from a timer on the host:
+
+```sh
+docker compose exec palanca dotnet Palanca.dll backup
+```
+
+- **`backup`** copies the live database with `VACUUM INTO`, checks the copy with `PRAGMA integrity_check`, and writes it as `palanca-<UTC time>.db` with a `sha256sum` checksum file beside it. Both are readable by the service's user only. It then deletes daily copies older than the retention. The copies taken before a migration are kept.
+- **`backup verify <file>`** checks a copy against its checksum file, when there is one, and runs the integrity check. It prints the copy's latest migration and the row count of each table.
+- **`restore <file>`** verifies a copy, then makes it the database. The database it replaces is renamed `palanca-replaced-<UTC time>.db`, with its WAL files, and kept. It refuses a copy from a newer version of Palanca. An older copy is migrated when the service next starts.
+
+To restore, stop the service, then run the command in a container of its own on the same volumes:
+
+```sh
+docker compose stop palanca
+docker compose run --rm palanca restore /backups/palanca-20261019T074000Z.db
+docker compose start palanca
+```
+
+The Data Protection keys are not in the database. A restore onto a new volume signs everyone out, and the owner signs in again with a passkey.
 
 To add a migration:
 
