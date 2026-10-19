@@ -10,7 +10,11 @@ internal sealed class DatabaseOptions
     [Required]
     public string FilePath { get; set; } = "";
 
-    /// <summary>Where a copy of the database is written before migrations change it.</summary>
+    /// <summary>Where the daily backups go, and the copy written before migrations change the database.</summary>
     [Required]
     public string BackupDirectory { get; set; } = "";
+
+    /// <summary>How many days the daily backups are kept (FLG-061). Copies taken before a migration are kept.</summary>
+    [Range(1, 3650)]
+    public int BackupRetentionDays { get; set; } = 14;
 }
