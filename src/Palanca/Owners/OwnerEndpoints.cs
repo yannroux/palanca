@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Palanca.Data;
+using Palanca.Metrics;
 using Palanca.Security;
 
 namespace Palanca.Owners;
@@ -57,7 +58,7 @@ internal static class OwnerEndpoints
         var enrollment = await accounts.FindEnrollmentAsync(request.Token, context.RequestAborted);
         if (enrollment is null)
         {
-            limiter.RecordFailure(clientAddress);
+            limiter.RecordFailure(clientAddress, FailedCredential.EnrollmentLink);
             return Results.BadRequest();
         }
 

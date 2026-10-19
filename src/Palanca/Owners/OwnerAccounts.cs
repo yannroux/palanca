@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Palanca.Data;
+using Palanca.Metrics;
 using Palanca.Security;
 
 namespace Palanca.Owners;
@@ -54,7 +55,7 @@ internal sealed class OwnerAccounts(
 
         if (!result.Succeeded)
         {
-            limiter.RecordFailure(clientAddress);
+            limiter.RecordFailure(clientAddress, FailedCredential.Passkey);
             return SignInOutcome.Rejected;
         }
 

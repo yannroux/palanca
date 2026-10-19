@@ -187,6 +187,21 @@ dotnet tool restore
 dotnet ef migrations add <Name> --project src/Palanca --output-dir Data/Migrations
 ```
 
+## Health and metrics
+
+These endpoints need no credential. They are meant for the private Docker networks only, so the deployment's public route must not expose them.
+
+- **`GET /health/live`** answers while the process runs.
+- **`GET /health/ready`** answers once the database can be read and written.
+- **`GET /metrics`** serves the service's counters in the Prometheus text format. The totals are kept in memory, so they start again from zero when the service restarts, and a series appears once it has counted something.
+
+| Metric | Labels | Counts |
+|--------|--------|--------|
+| `palanca_requests_total` | `area`: `dashboard`, `evaluation`, `management`, `health`, `metrics`; `status_class`: `1xx` to `5xx` | Requests answered. Errors are the `5xx` class, unhandled exceptions included. |
+| `palanca_authentication_failures_total` | `credential`: `sdk_key`, `management_token`, `passkey`, `enrollment_link` | Failed authentications, the same ones the failed sign-in limit counts. |
+
+Labels take only these values, so no key, token, path, or client address reaches a metric.
+
 ## Container image
 
 ```sh

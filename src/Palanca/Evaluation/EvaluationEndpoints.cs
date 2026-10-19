@@ -3,6 +3,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Net.Http.Headers;
 using Palanca.Data;
+using Palanca.Metrics;
 using Palanca.Security;
 
 namespace Palanca.Evaluation;
@@ -38,7 +39,7 @@ internal static class EvaluationEndpoints
         if (key is null)
         {
             // Missing, unknown, revoked, or archived: the answer is the same, so it says nothing about which.
-            limiter.RecordFailure(clientAddress);
+            limiter.RecordFailure(clientAddress, FailedCredential.SdkKey);
             context.Response.Headers.WWWAuthenticate = "Bearer";
             return Results.StatusCode(StatusCodes.Status401Unauthorized);
         }

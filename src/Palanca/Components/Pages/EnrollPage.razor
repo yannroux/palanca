@@ -74,7 +74,7 @@
         var enrollment = await Accounts.FindEnrollmentAsync(Input.Token, HttpContext.RequestAborted);
         if (enrollment is null)
         {
-            Limiter.RecordFailure(HttpContext.Connection.RemoteIpAddress);
+            Limiter.RecordFailure(HttpContext.Connection.RemoteIpAddress, Palanca.Metrics.FailedCredential.EnrollmentLink);
             Fail(InvalidLink);
             return;
         }

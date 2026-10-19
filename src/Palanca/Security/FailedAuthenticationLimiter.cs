@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Net.Sockets;
 using Microsoft.Extensions.Options;
+using Palanca.Metrics;
 
 namespace Palanca.Security;
 
@@ -18,9 +19,11 @@ internal sealed class FailedAuthenticationOptions
 /// Counts failed authentication attempts per client address (FLG-032). Once the limit is reached within one
 /// minute, further attempts from that address are refused until the oldest failure is a minute old.
 /// A public IPv6 client is counted by its /64 network, which a single host controls; private and link-local IPv6
-/// addresses, such as containers on a Docker network, are counted one by one.
+/// addresses, such as containers on a Docker network, are counted one by one. Each failure is also counted in the
+/// service's metrics, by the kind of credential presented (FLG-064).
 /// </summary>
-internal sealed class FailedAuthenticationLimiter(TimeProvider timeProvider, IOptions<FailedAuthenticationOptions> options)
+internal sealed class FailedAuthenticationLimiter(
+    TimeProvider timeProvider, IOptions<FailedAuthenticationOptions> options, ServerMetrics metrics)
 {
     private readonly SlidingWindowLog _failures = new(timeProvider);
 
@@ -29,7 +32,11 @@ internal sealed class FailedAuthenticationLimiter(TimeProvider timeProvider, IOp
 
     public bool IsLimited(IPAddress? address) => _failures.Count(Key(address)) >= options.Value.PermitLimit;
 
-    public void RecordFailure(IPAddress? address) => _failures.Add(Key(address));
+    public void RecordFailure(IPAddress? address, FailedCredential credential)
+    {
+        _failures.Add(Key(address));
+        metrics.RecordAuthenticationFailure(credential);
+    }
 
     // Requests without an address, such as in-process tests, share one bucket.
     private static string Key(IPAddress? address)

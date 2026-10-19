@@ -13,11 +13,11 @@ using Palanca.SdkKeys;
 
 namespace Palanca.Tests.Owners;
 
-/// <summary>Logs and error responses never carry an enrollment link, a passkey response, a cookie, or an SDK key (AC-011).</summary>
+/// <summary>Logs, metrics, and error responses never carry an enrollment link, a passkey response, a cookie, or an SDK key (AC-011).</summary>
 public sealed class LogHygieneTests
 {
     [Fact]
-    public async Task SignInFlowsLeaveNoSecretInTheLogs()
+    public async Task SignInFlowsLeaveNoSecretInTheLogsOrMetrics()
     {
         var logs = new CapturingLoggerProvider();
         await using var factory = new PalancaFactory
@@ -108,6 +108,16 @@ public sealed class LogHygieneTests
 
         Assert.DoesNotContain(logs.Messages, message => message.Contains("clientDataJSON", StringComparison.Ordinal));
         Assert.DoesNotContain(logs.Messages, message => message.Contains("/enroll#", StringComparison.Ordinal));
+
+        using var scraper = factory.CreateClient();
+        var metrics = await scraper.GetStringAsync("/metrics", TestContext.Current.CancellationToken);
+        Assert.Contains("palanca_requests_total{area=\"management\"", metrics, StringComparison.Ordinal);
+        foreach (var secret in secrets)
+        {
+            Assert.DoesNotContain(secret, metrics, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain("clientDataJSON", metrics, StringComparison.Ordinal);
     }
 
     [Fact]
