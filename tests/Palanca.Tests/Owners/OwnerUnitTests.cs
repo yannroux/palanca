@@ -2,8 +2,10 @@ using System.Net;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Palanca.Components;
+using Palanca.Metrics;
 using Palanca.Owners;
 using Palanca.Security;
+using Palanca.Tests.Metrics;
 
 namespace Palanca.Tests.Owners;
 
@@ -83,7 +85,7 @@ public sealed class OwnerUnitTests
         for (var failure = 0; failure < 10; failure++)
         {
             Assert.False(limiter.IsLimited(address));
-            limiter.RecordFailure(address);
+            limiter.RecordFailure(address, FailedCredential.SdkKey);
             time.Advance(TimeSpan.FromSeconds(1));
         }
 
@@ -102,7 +104,7 @@ public sealed class OwnerUnitTests
 
         for (var failure = 0; failure < 3; failure++)
         {
-            limiter.RecordFailure(address);
+            limiter.RecordFailure(address, FailedCredential.SdkKey);
         }
 
         Assert.True(limiter.IsLimited(address));
@@ -115,7 +117,7 @@ public sealed class OwnerUnitTests
 
         for (var host = 1; host <= 10; host++)
         {
-            limiter.RecordFailure(IPAddress.Parse($"2001:db8:1:2::{host:x}"));
+            limiter.RecordFailure(IPAddress.Parse($"2001:db8:1:2::{host:x}"), FailedCredential.SdkKey);
         }
 
         Assert.True(limiter.IsLimited(IPAddress.Parse("2001:db8:1:2:ffff::1")));
@@ -130,7 +132,7 @@ public sealed class OwnerUnitTests
 
         for (var failure = 0; failure < 10; failure++)
         {
-            limiter.RecordFailure(IPAddress.Parse("fd00:dead:beef::2"));
+            limiter.RecordFailure(IPAddress.Parse("fd00:dead:beef::2"), FailedCredential.SdkKey);
         }
 
         Assert.True(limiter.IsLimited(IPAddress.Parse("fd00:dead:beef::2")));
@@ -144,15 +146,15 @@ public sealed class OwnerUnitTests
         var limiter = Limiter(time);
         for (var host = 1; host <= 100; host++)
         {
-            limiter.RecordFailure(IPAddress.Parse($"198.51.100.{host}"));
+            limiter.RecordFailure(IPAddress.Parse($"198.51.100.{host}"), FailedCredential.SdkKey);
         }
 
         time.Advance(TimeSpan.FromMinutes(2));
-        limiter.RecordFailure(IPAddress.Parse("203.0.113.1"));
+        limiter.RecordFailure(IPAddress.Parse("203.0.113.1"), FailedCredential.SdkKey);
 
         Assert.Equal(1, limiter.TrackedAddresses);
     }
 
     private static FailedAuthenticationLimiter Limiter(TimeProvider time, int permitLimit = 10) =>
-        new(time, Options.Create(new FailedAuthenticationOptions { PermitLimit = permitLimit }));
+        new(time, Options.Create(new FailedAuthenticationOptions { PermitLimit = permitLimit }), new ServerMetrics(new TestMeterFactory()));
 }

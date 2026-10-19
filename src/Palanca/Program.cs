@@ -9,6 +9,7 @@ using Palanca.Flags;
 using Palanca.History;
 using Palanca.Management;
 using Palanca.ManagementTokens;
+using Palanca.Metrics;
 using Palanca.Owners;
 using Palanca.SdkKeys;
 using Palanca.Security;
@@ -42,6 +43,7 @@ builder.Services.AddScoped<ManagementTokenCommands>();
 builder.Services.AddManagementApi();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<NewSecretHandoff>();
+builder.Services.AddServerMetrics();
 builder.Services.AddClientAddress();
 builder.Services.AddOwnerAuthentication();
 builder.Services.AddRazorComponents();
@@ -50,6 +52,7 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+app.UseRequestMetrics();
 app.UseForwardedHeaders();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseAuthentication();
@@ -59,6 +62,7 @@ app.UseAntiforgery();
 // Liveness runs no checks: answering at all proves the process is up.
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains(HealthTags.Ready) }).AllowAnonymous();
+app.MapMetricsEndpoint();
 
 app.MapStaticAssets().AllowAnonymous();
 app.MapOwnerEndpoints();

@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Palanca.Data;
+using Palanca.Metrics;
 using Palanca.Security;
 
 namespace Palanca.Management;
@@ -30,7 +31,7 @@ internal sealed class ManagementAuthentication(PalancaDbContext db, FailedAuthen
         var caller = await FindCallerAsync(BearerSecrets.FromRequest(context.Request), now, cancellationToken);
         if (caller is null)
         {
-            limiter.RecordFailure(clientAddress);
+            limiter.RecordFailure(clientAddress, FailedCredential.ManagementToken);
             context.Response.Headers.WWWAuthenticate = "Bearer";
             return ManagementProblems.Unauthorized();
         }
