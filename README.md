@@ -20,7 +20,7 @@ The browser test drives Google Chrome (the stable channel) with a virtual passke
 |---------|-------------|-----------|
 | `Palanca:Dashboard:Origin` | `https://localhost:7180` | `https://palanca.hogarhero.com` |
 | `Palanca:DataProtection:KeysDirectory` | `src/Palanca/.data/keys` | `/data/keys` |
-| `Palanca:Network:TrustedProxies` | none | none; set it to Caddy's address |
+| `Palanca:Network:TrustedProxies` | none | none; set it to Caddy's address (`deploy/compose.yml` does) |
 | `Palanca:FailedAuthentication:PermitLimit` | 10 | 10 |
 
 - **`Palanca:Dashboard:Origin`** is the exact origin browsers use. Passkeys are bound to its host, they are accepted only from this origin, and enrollment links point at it.
@@ -233,6 +233,8 @@ docker run --rm --read-only --volume palanca-data:/data --publish 8080:8080 pala
 ```
 
 `/data` is the only writable path. Mount a volume there.
+
+To run it on the HogarHero VPS, follow [docs/deployment.md](docs/deployment.md). `deploy/` holds the Compose file, the deploy and install scripts, and the daily backup timer.
 
 The image's health check runs `dotnet Palanca.dll healthcheck`, because the chiseled runtime image has no shell.
 

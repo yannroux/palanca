@@ -1,0 +1,11 @@
+[Unit]
+Description=Back up Palanca's database daily
+
+[Timer]
+# After HogarHero's PostgreSQL backup, which runs at 07:20 UTC with up to 20 minutes of delay.
+OnCalendar=*-*-* 07:50:00 UTC
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

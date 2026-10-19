@@ -1,0 +1,59 @@
+# Palanca on the HogarHero VPS: its own Compose project, independent of HogarHero's releases. It joins HogarHero's
+# networks as external networks, so HogarHero's Compose project must be up first.
+#
+# The image is set by deploy/vps/deploy.sh, which writes PALANCA_IMAGE (a digest, never a tag; FLG-071) to .env
+# next to this file.
+name: palanca
+
+services:
+  palanca:
+    image: ${PALANCA_IMAGE:?set PALANCA_IMAGE to ghcr.io/yannroux/palanca@sha256:<digest>}
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+    expose: ["8080"]
+    environment:
+      # Outside the data volume, so losing the volume does not lose the backups (FLG-061).
+      Palanca__Database__BackupDirectory: /backups
+      # Caddy's fixed address on HogarHero's edge network. Only Caddy may name the client address and scheme.
+      Palanca__Network__TrustedProxies__0: 172.30.10.2
+    volumes:
+      - data:/data
+      - ${PALANCA_BACKUP_DIR:-/opt/palanca/backups}:/backups
+    networks:
+      edge:
+        # HogarHero gives its edge containers fixed addresses (Caddy .2, web .3, web-staging .4). Without one of its
+        # own, Palanca would take the lowest free address, which can be web-staging's while staging is stopped.
+        ipv4_address: 172.30.10.20
+        # Caddy proxies to this name, which exists on edge only. Caddy is on staging-backend too, so through the
+        # plain service name it could reach Palanca there, from an address that is not a trusted proxy.
+        aliases: [palanca-dashboard]
+      # HogarHero's production Web and Worker reach the evaluation API here, and staging's on staging-backend.
+      backend:
+      staging-backend:
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 128
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  data:
+
+networks:
+  edge:
+    external: true
+    name: hogarhero-production_edge
+  backend:
+    external: true
+    name: hogarhero-production_backend
+  staging-backend:
+    external: true
+    name: hogarhero-production_staging-backend

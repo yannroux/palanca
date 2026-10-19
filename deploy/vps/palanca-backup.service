@@ -1,0 +1,9 @@
+[Unit]
+Description=Back up Palanca's database (FLG-061)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/palanca
+ExecStart=/usr/bin/docker compose exec -T palanca dotnet Palanca.dll backup
