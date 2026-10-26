@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0.402-noble AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.403-noble AS build
 WORKDIR /src
 COPY .editorconfig Directory.Build.props Directory.Packages.props global.json ./
 COPY src/Palanca/Palanca.csproj src/Palanca/
@@ -13,7 +13,7 @@ RUN mkdir /data
 
 # Pinned to the same .NET patch as HogarHero. Chiseled: no shell, no package manager,
 # non-root `app` user. The application files stay owned by root, so the process cannot change them.
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.13-noble-chiseled AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.14-noble-chiseled AS runtime
 WORKDIR /app
 COPY --from=build /out/ ./
 # The only writable path: mount a volume here. Docker copies this ownership into a new named volume.
